@@ -1,0 +1,607 @@
+#include <chrono>
+#include <queue>
+#include <unordered_set>
+#include <boost/unordered_set.hpp>
+
+#include "CBSHSearch.h"
+#include "log.h"
+#include "LLNode.h"
+
+namespace mapf{
+    namespace CBSH {
+
+        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids, 
+            const int strategy_level, float focal_w, bool rectangle_reasoning, bool block, 
+            const std::vector<int> &starts, const std::vector<int> &goals) 
+            : map_(map), strategy_level_(strategy_level), agent_ids_(agent_ids),
+              HL_generate_num_(0), focal_w_(focal_w), rectangle_reasoning_(rectangle_reasoning),
+              block_(block), solution_cost_(-2), cost_upperbound_(std::numeric_limits<int>::max())
+        {
+            agent_num_ = agent_ids.size();
+            auto root_s = std::chrono::system_clock::now();
+            // 计算astar h
+            for(int i = 0; i < goals.size(); ++i) {
+                std::string a = agent_ids_[i];
+                ComputeH(goals[i], a);
+            }
+            auto mp_ch_e = std::chrono::system_clock::now();            
+
+            open_list_.clear();
+            focal_list_.clear();
+
+            // 规划根节点
+            // 构造根节点时进行初始规划、识别冲突
+            root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_level_, rectangle_reasoning_,
+                map_, htable_, mddtable_, astar_h_, block_));
+
+            root_->open_handle_ = open_list_.push(root_);
+            root_->focal_handle_ = focal_list_.push(root_);
+            ++HL_generate_num_;
+            focal_list_threshold_ = root_->GetTotalCost() * focal_w_;
+            min_f_cost_ = root_->GetTotalCost();
+            LOG_DEBUG_STREAM("High level build root.");
+            auto mp_root_e = std::chrono::system_clock::now();
+            auto mp_root_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_root_e - root_s);
+            root_t_ = double(mp_root_d.count()) * std::chrono::microseconds::period::num / 
+            std::chrono::microseconds::period::den;
+        }
+
+        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids, 
+        std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, int strategy_level, 
+        bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block)
+            : map_(map), strategy_level_(strategy_level), agent_ids_(agent_ids),
+              HL_generate_num_(0), focal_w_(f_w), rectangle_reasoning_(rectangle_reasoning),
+              block_(block), cost_upperbound_(cost_upperbound), time_limit_(time_limit),
+              solution_cost_(-2)
+        {
+            agent_num_ = agent_ids.size();
+            // 计算astar h
+            for(auto p: init_paths) {
+                std::string a = p.first;
+                ComputeH(p.second.GetGoalLoc(), a);
+            }           
+
+            open_list_.clear();
+            focal_list_.clear();
+
+            // 规划根节点
+            // 构造根节点时进行初始规划、识别冲突
+            root_.reset(new CBSHNode(agent_ids_, strategy_level_, rectangle_reasoning_,
+                map_, htable_, mddtable_, astar_h_, block_, init_paths, init_h));
+
+            root_->open_handle_ = open_list_.push(root_);
+            root_->focal_handle_ = focal_list_.push(root_);
+            ++HL_generate_num_;
+            min_f_cost_ = root_->GetTotalCost();
+            focal_list_threshold_ = min_f_cost_ * focal_w_;
+        }
+
+        bool CBSHSearch::MakePlan() {
+            auto mp_s = std::chrono::system_clock::now();
+
+            while(!focal_list_.empty()){
+                if(min_f_cost_ >= cost_upperbound_) {
+                    solution_cost_ = min_f_cost_;
+                    return false;
+                }
+                auto mp_whi_s = std::chrono::system_clock::now();
+                CBSHNode::Ptr current_node = focal_list_.top();
+                focal_list_.pop();
+                open_list_.erase(current_node->open_handle_);
+                auto ps = current_node->GetPaths(); //debug
+                int dep = current_node->GetDepth(); //debug
+                auto curr_top = *current_node; //debug
+                std::string cons_agent_d = current_node->GetConsAgent();    //debug
+
+                if(current_node->GetCollisionNum() == 0){ // 无冲突，规划完成
+                    auto curr = *current_node; //debug
+                    ps = current_node->GetPaths(); //debug
+                    solution_cost_ = current_node->GetGCost();   //debug
+                    RecordPlan(current_node);
+                    auto mp_e = std::chrono::system_clock::now();
+                    auto mp_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_e - mp_s);
+                    LOG_DEBUG_STREAM("Finish make plan, time: " << double(mp_d.count()) * 
+                    std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
+                    LOG_DEBUG_STREAM("Generate High Level nodes: " << HL_generate_num_);
+                    LOG_DEBUG_STREAM("High level root, time: " << root_t_);
+                    LOG_DEBUG_STREAM("G cost: " << current_node->GetGCost());
+                    LOG_DEBUG_STREAM("Makespan: " << current_node->GetMakespan());
+                    return true;
+                }
+                else if(strategy_level_ <= 1) {
+                    if(strategy_level_ == 1) {
+                        current_node->ClassifyConflicts();
+                    }
+                    current_node->ChooseConflict();
+                }
+                else if(!current_node->HasComputeH()){
+                    if(strategy_level_ >= 1){   // 使用ICBS的PC(prioritiza conflict)方法
+                        current_node->ClassifyConflicts();
+                    }
+                    if(strategy_level_ >= 2){   // 计算冲突启发式函数，更新节点cost
+                        int h = ComputeHeuristics(current_node);
+                        if(h < 0){  // no solution
+                            UpdateFocalList();
+                            continue;
+                        }
+                        else {
+                            current_node->UpdateCost(h);
+                        }
+                    }
+                    current_node->ChooseConflict();
+                    float f_d = current_node->GetTotalCost();   //  debug
+                    if(current_node->GetTotalCost() > focal_list_threshold_){
+                        current_node->open_handle_ = open_list_.push(current_node);
+                        UpdateFocalList();
+                        continue;
+                    }
+                }
+
+                // debug
+                int total_cost_d = current_node->GetTotalCost();
+                int node_g_cost_d = current_node->GetGCost();
+                int node_h_cost_d = current_node->GetHCost();
+                int num_of_collisions_d = current_node->GetCollisionNum();
+                int makespan_d = current_node->GetMakespan();
+                int depth_d = current_node->GetDepth();
+
+                // 扩展左右节点
+                CBSHNode::Ptr left;
+                CBSHNode::Ptr right;
+
+                // 生成限制
+                int f_cost = current_node->GetTotalCost();
+                int h_cost = current_node->GetHCost();
+                int g_cost = current_node->GetGCost();
+                std::vector<Conflict> current_con;  //debug
+                for(auto c: current_node->GetConflicts()) {
+                    current_con.push_back(c);
+                }   // debug
+                Conflict curr_conf = current_node->GetLastestConflict();
+                LOG_DEBUG_STREAM("Conflict type: " << curr_conf.Type());
+                std::string conf_agent1 = curr_conf.GetAgent(0);
+                std::string conf_agent2 = curr_conf.GetAgent(1);
+                left.reset(new CBSHNode(current_node, conf_agent1));
+                right.reset(new CBSHNode(current_node, conf_agent2));
+                if(curr_conf.Type() == "rectangle") {
+                    Constraint cons1(conf_agent1, "rectangle");
+                    Constraint cons2(conf_agent2, "rectangle");
+                    std::pair<int, int> Rg = curr_conf.GetRg();
+                    int s1_time = curr_conf.GetRectTime(0);
+                    int s2_time = curr_conf.GetRectTime(1);
+                    LOG_DEBUG_STREAM("Rectangle conflict Rg: " << Rg.first << ", " << Rg.second << "; s1 time: " <<
+                    s1_time << "; s2 time: " << s2_time);
+                    MDD::Ptr mdd1 = current_node->BuildMDD(conf_agent1);
+                    MDD::Ptr mdd2 = current_node->BuildMDD(conf_agent2);
+                    AddModifiedBarrierCons(current_node->GetPath(conf_agent1).GetPaths(), 
+                    current_node->GetPath(conf_agent2).GetPaths(), mdd1, mdd2, s1_time, s2_time, Rg, cons1, cons2);
+                    left->AddConstraint(conf_agent1, cons1);
+                    right->AddConstraint(conf_agent2, cons2);
+                }
+                else if(curr_conf.Type() == "vertex"){
+                    LOG_DEBUG_STREAM("Vertex conflict loc: " << curr_conf.GetLoc(0) << "; timestep: " << curr_conf.GetTimestep());
+                    Constraint cons1(conf_agent1, "vertex");
+                    Constraint cons2(conf_agent2, "vertex");
+                    cons1.SetConstraint(curr_conf.GetLoc(0), -1, curr_conf.GetTimestep());
+                    left->AddConstraint(conf_agent1, cons1);
+                    cons2.SetConstraint(curr_conf.GetLoc(0), -1, curr_conf.GetTimestep());
+                    right->AddConstraint(conf_agent2, cons2);
+                }
+                else {
+                    LOG_DEBUG_STREAM("Edge conflict loc1: " << curr_conf.GetLoc(0) << "; loc2: " << curr_conf.GetLoc(1) <<
+                    "; timestep: " << curr_conf.GetTimestep());
+                    Constraint cons1(conf_agent1, "edge");
+                    Constraint cons2(conf_agent2, "edge");
+                    cons1.SetConstraint(curr_conf.GetLoc(0), curr_conf.GetLoc(1), curr_conf.GetTimestep());
+                    left->AddConstraint(conf_agent1, cons1);
+                    cons2.SetConstraint(curr_conf.GetLoc(1), curr_conf.GetLoc(0), curr_conf.GetTimestep());
+                    right->AddConstraint(conf_agent2, cons2);
+                }
+
+                BuildChild(left, conf_agent1, current_node->GetConflictGraph());
+                LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent1);
+                BuildChild(right, conf_agent2, current_node->GetConflictGraph());
+                LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent2);
+
+                UpdateFocalList();
+                auto mp_whi_e = std::chrono::system_clock::now();
+                auto mp_whi_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_whi_e - mp_whi_s);
+                LOG_DEBUG_STREAM("Finish high level node, time: " << double(mp_whi_d.count()) * 
+                std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
+            } // end of while loop
+            return false;
+        }
+
+        std::vector<Agent::Ptr> CBSHSearch::GetPlan() {
+            return plan_result_;
+        }
+
+        bool CBSHSearch::BuildChild(CBSHNode::Ptr &node, std::string cons_agent, 
+        const std::map<std::pair<std::string, std::string>, int> &conflict_graph) {
+            auto bc_s = std::chrono::system_clock::now();
+            int lower_bound;
+            Conflict parent_conf = node->GetLastestConflict();
+
+            if(parent_conf.Type() == "rectangle") {
+                lower_bound = 0;
+            }
+            else if(parent_conf.GetTimestep() >= node->GetPath(cons_agent).Size()) {
+                lower_bound = parent_conf.GetTimestep() + 1;
+            }
+            else{
+                lower_bound = node->GetPath(cons_agent).Size() - 1;
+            }
+            
+            if(!node->LLPlan(cons_agent, lower_bound)){
+                return false;
+            }
+            // 评估h cost
+            node->EstimateH(cons_agent, conflict_graph);
+            node->FindConflict(cons_agent);
+            node->CopyConflictGraph(conflict_graph);
+
+            node->open_handle_ = open_list_.push(node);
+            ++HL_generate_num_;
+            if(node->GetTotalCost() <= focal_list_threshold_) {
+                node->focal_handle_ = focal_list_.push(node);
+            }
+            auto bc_e = std::chrono::system_clock::now();
+            auto bc_d = std::chrono::duration_cast<std::chrono::microseconds>(bc_e - bc_s);
+            LOG_DEBUG_STREAM("Finish build child, time: " << double(bc_d.count()) * 
+            std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
+            return true;
+        }
+
+        void CBSHSearch::RecordPlan(const CBSHNode::Ptr &node) {
+            plan_result_.clear();
+            for(auto path: node->GetPaths()) {
+                Agent::Ptr a;
+                a.reset(new Agent(path.first));
+                a->SetStart(path.second.GetStartLoc());
+                a->SetGoal(path.second.GetGoalLoc());
+                a->SetPaths(path.second.GetPaths());
+                plan_result_.push_back(a);
+
+                LOG_DEBUG_STREAM("Agent id: " << path.first);
+                for(auto loc: path.second.GetPaths()) {
+                    std::pair<int, int> l;
+                    l = map_->ToXY(loc.first);
+                    LOG_DEBUG_STREAM(l.first << ", " << l.second);
+                }
+            }
+        }
+
+        // 向focal list中添加新node（处于新旧focal_list_threshold之间）
+        // 更新focal list threshold
+        void CBSHSearch::UpdateFocalList() {
+            float new_f_cost = open_list_.top()->GetTotalCost();
+            auto top_d = *open_list_.top();  //debug
+            if(new_f_cost > min_f_cost_) {
+                min_f_cost_ = new_f_cost;
+                float new_focal_list_threshold = min_f_cost_ *focal_w_;
+                for(auto &n: open_list_) {
+                    float n_f_cost = n->GetTotalCost();
+                    if(n_f_cost > focal_list_threshold_ && n_f_cost <= new_focal_list_threshold) {
+                        n->focal_handle_ = focal_list_.push(n);
+                    }
+                }
+                focal_list_threshold_ = new_focal_list_threshold;
+            }
+        }
+
+        void CBSHSearch::AddModifiedBarrierCons(std::vector<std::pair<int, bool> > path1, 
+            std::vector<std::pair<int, bool> > path2, MDD::Ptr mdd1, 
+            MDD::Ptr mdd2, int s1, int s2, std::pair<int, int> Rg, Constraint &cons1, Constraint &cons2){
+            std::pair<int, int> s1_cor = map_->ToYX(path1[s1].first);
+            std::pair<int, int> s2_cor = map_->ToYX(path2[s2].first);
+            int Rg_t = s1 + abs(Rg.first - s1_cor.first) + abs(Rg.second - s1_cor.second);
+
+            std::pair<int, int> R1, R2;
+            if((s1_cor.first == s2_cor.first && (s1_cor.second - s2_cor.second) * (s2_cor.second - Rg.second) < 0) ||
+            (s1_cor.first != s2_cor.first && (s1_cor.first - s2_cor.first) * (s2_cor.first - Rg.first) >= 0)) {
+                R1 = std::make_pair(Rg.first, s1_cor.second);
+                R2 = std::make_pair(s2_cor.first, Rg.second);
+                AddModifiedBarrierConsH(mdd1, Rg, R1, Rg_t, cons1);
+                AddModifiedBarrierConsV(mdd2, Rg, R2, Rg_t, cons2);
+            }
+            else {
+                R1 = std::make_pair(s1_cor.first, Rg.second);
+                R2 = std::make_pair(Rg.first, s2_cor.second);
+                AddModifiedBarrierConsV(mdd1, Rg, R1, Rg_t, cons1);
+                AddModifiedBarrierConsH(mdd2, Rg, R2, Rg_t, cons2);
+            }
+        }
+
+        void CBSHSearch::AddModifiedBarrierConsH(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R, 
+                int Rg_t, Constraint &cons){
+            int sign = R.second < Rg.second ? 1: -1;
+            int Rt = Rg_t - abs(R.second - Rg.second);
+            int t1 = -1;
+            for(int t2 = Rt; t2 <= Rg_t; ++t2) {
+                int loc = R.second + (t2 - Rt) * sign + Rg.first * map_->GetWidth();
+                MDDNode::Ptr it = nullptr;
+                for(MDDNode::Ptr n: mdd->GetLevel(t2)){
+                    if(n->GetLoc() == loc) {
+                        it = n;
+                        break;
+                    }
+                }
+
+                if(it == nullptr && t1 >= 0) {
+                    int loc1 = R.second + (t1 - Rt) * sign + Rg.first * map_->GetWidth();
+                    int loc2 = R.second + (t2 - 1 - Rt) * sign + Rg.first * map_->GetWidth();
+                    cons.SetConstraint(loc1, loc2, t2 - 1);
+                    t1 = -1;
+                    continue;
+                }
+                else if(it != nullptr && t1 < 0) {
+                    t1 = t2;
+                }
+                
+                if(it != nullptr && t2 == Rg_t) {
+                    int loc1 = R.second + (t1 - Rt) * sign + Rg.first * map_->GetWidth();
+                    cons.SetConstraint(loc1, loc, t2);
+                }
+            }
+        }
+
+        void CBSHSearch::AddModifiedBarrierConsV(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R, 
+            int Rg_t, Constraint &cons){
+            int sign = R.first < Rg.first ? 1 : -1;
+            int Rt = Rg_t - abs(R.first - Rg.first);
+            int t1 = -1;
+            for(int t2 = Rt; t2 <= Rg_t; ++t2) {
+                int loc = (R.first + (t2 - Rt) * sign) * map_->GetWidth() + Rg.second;
+                MDDNode::Ptr it = nullptr;
+                for(MDDNode::Ptr n: mdd->GetLevel(t2)) {
+                    if(n->GetLoc() == loc) {
+                        it = n;
+                        break;
+                    }
+                }
+
+                if(it == nullptr && t1 >= 0) {
+                    int loc1 = (R.first + (t1 - Rt) * sign) * map_->GetWidth() + Rg.second;
+                    int loc2 = (R.first + (t2 - 1 - Rt) * sign) * map_->GetWidth() + Rg.second;
+                    cons.SetConstraint(loc1, loc2, t2 - 1);
+                    t1 = -1;
+                    continue;
+                }
+                else if(it != nullptr && t1 < 0) {
+                    t1 = t2;
+                }
+
+                if(it != nullptr && t2 == Rg_t) {
+                    int loc1 = (R.first + (t1 - Rt) * sign) * map_->GetWidth() + Rg.second;
+                    cons.SetConstraint(loc1, loc, t2);
+                }
+            }
+        }
+
+        void CBSHSearch::ComputeH(int goal_loc, std::string agent_id){
+            int map_size = map_->GetMapSize();
+            std::vector<int> temp_h(map_size, std::numeric_limits<int>::max());
+
+            boost::heap::fibonacci_heap<LLNode::Ptr, boost::heap::compare<LLNode::Open_compare> > open_list;
+            boost::unordered_set<LLNode::Ptr, LLNode::NodeHasher, LLNode::Eqnode> nodes;
+
+            LLNode::Ptr root;
+            root.reset(new LLNode(goal_loc, 0, 0, nullptr, 0, 0));
+            root->open_handle_ = open_list.push(root);
+            nodes.insert(root);
+            std::vector<int> moveoffset = map_->GetMoveOffset();
+            while(!open_list.empty()) {
+                LLNode::Ptr curr_node = open_list.top();
+                open_list.pop();
+
+                for(int i = 0; i < 5; ++i) {
+                    int curr_loc = curr_node->GetLoc();
+                    int next_loc = curr_loc + moveoffset[i];
+                    if(block_ && map_->IsBlocked(next_loc)) {
+                        continue;
+                    }
+                    if(map_->ValidMove(curr_loc, next_loc)) {
+                        int next_g_cost = curr_node->GetGCost() + 1;
+                        LLNode::Ptr next;
+                        next.reset(new LLNode(next_loc, next_g_cost, 0, nullptr, 0, 0));
+                        auto iter = nodes.find(next);
+                        if(iter == nodes.end()) {
+                            next->open_handle_ = open_list.push(next);
+                            nodes.insert(next);
+                        }
+                        else {
+                            next = *iter;
+                            if(next->GetGCost() > next_g_cost) {
+                                next->SetGCost(next_g_cost);
+                                open_list.update(next->open_handle_);
+                            }
+                        }
+                    }
+                } // end for loop
+            } // end while loop
+            for(auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
+                temp_h[iter->get()->GetLoc()] = iter->get()->GetGCost();
+            }
+            astar_h_[agent_id] = temp_h;
+        }
+
+        int CBSHSearch::ComputeHeuristics(CBSHNode::Ptr node) {
+            node->SetComputeH(true);
+            int agent_num = agent_ids_.size();
+            int edge_num = 0;
+            std::map<std::pair<std::string, std::string>, int> conf_graph;
+            if(strategy_level_ == 2) {  // 使用CG
+                auto cardinal_conf = node->GetCardinalConf();
+                for(auto iter = cardinal_conf.begin(); iter != cardinal_conf.end(); ++iter) {
+                    std::string agent_id1 = iter->GetAgent(0);
+                    std::string agent_id2 = iter->GetAgent(1);
+                    auto iter_cg = conf_graph.find(std::make_pair(agent_id1, agent_id2));
+                    if(iter_cg == conf_graph.end() || iter_cg->second == 0) {
+                        conf_graph[std::make_pair(agent_id1, agent_id2)] = 1;
+                        conf_graph[std::make_pair(agent_id2, agent_id1)] = 1;
+                        ++edge_num;
+                    }
+                }
+            }
+            else {  // 使用DG或WDG，strategy level为3或4
+                if(!BuildDependenceGraph(node)) {
+                    return -1;
+                }
+                for(const auto a1: agent_ids_) {
+                    for(const auto a2: agent_ids_) {
+                        auto conflict_graph = node->GetConflictGraph();
+                        auto iter = conflict_graph.find(std::make_pair(a1, a2));
+                        if(iter != conflict_graph.end() && iter->second > 0) {
+                            conf_graph[std::make_pair(a1, a2)] = iter->second;
+                            conf_graph[std::make_pair(a2, a1)] = iter->second;
+                            ++edge_num;
+                        }
+                    }
+                }
+            }
+
+            int result;
+            if(strategy_level_ == 4) {
+                result = node->WeightedVertexCorver(conf_graph);
+                int temp = 1; //debug
+            }
+            else {
+                result = node->MinimumVertexCover(conf_graph, edge_num);
+            }
+            return result;
+        }
+
+        // 每条边代表agent之间有冲突，DG用1表示，WDG计算权重
+        bool CBSHSearch::BuildDependenceGraph(CBSHNode::Ptr node) {
+            for(auto conf: node->cardinal_conf_) {
+                std::string agent_id1 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(0): conf.GetAgent(1);
+                std::string agent_id2 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(1): conf.GetAgent(0);
+                if((agent_id1 == "8" && agent_id2 == "17") || (agent_id1 == "17" && agent_id2 == "8")) {	//debug
+                    int temp=1;
+                }
+                if(strategy_level_ == 3) {
+                    node->conflict_graph_[std::make_pair(agent_id1, agent_id2)] = 1;
+                }
+                else if (node->conflict_graph_.find(std::make_pair(agent_id1, agent_id2)) == node->conflict_graph_.end()) {
+                    std::pair<int, bool> w_hit = GetEdgeWeight(agent_id1, agent_id2, true, node);
+                    if(w_hit.first < 0) {   // no solution
+                        return false;
+                    }
+                    node->conflict_graph_[std::make_pair(agent_id1, agent_id2)] = w_hit.first;
+                }
+            }
+            for(auto conf: node->semi_conf_) {
+                std::string agent_id1 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(0): conf.GetAgent(1);
+                std::string agent_id2 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(1): conf.GetAgent(0);
+                if((agent_id1 == "8" && agent_id2 == "17") || (agent_id1 == "17" && agent_id2 == "8")) {	//debug
+                    int temp=1;
+                }
+                if (node->conflict_graph_.find(std::make_pair(agent_id1, agent_id2)) == node->conflict_graph_.end()) {
+                    std::pair<int, bool> w_hit = GetEdgeWeight(agent_id1, agent_id2, false, node);
+                    if(w_hit.first < 0) {   // no solution
+                        return false;
+                    }
+                    node->conflict_graph_[std::make_pair(agent_id1, agent_id2)] = w_hit.first;
+                }
+            }
+            for(auto conf: node->non_conf_) {
+                std::string agent_id1 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(0): conf.GetAgent(1);
+                std::string agent_id2 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(1): conf.GetAgent(0);
+                if((agent_id1 == "8" && agent_id2 == "17") || (agent_id1 == "17" && agent_id2 == "8")) {	//debug
+                    int temp=1;
+                }
+                if (node->conflict_graph_.find(std::make_pair(agent_id1, agent_id2)) == node->conflict_graph_.end()) {
+                    std::pair<int, bool> w_hit = GetEdgeWeight(agent_id1, agent_id2, false, node);
+                    if(w_hit.first < 0) {   // no solution
+                        return false;
+                    }
+                    node->conflict_graph_[std::make_pair(agent_id1, agent_id2)] = w_hit.first;
+                }
+            }
+            return true;
+        }
+
+        std::pair<int, bool> CBSHSearch::GetEdgeWeight(std::string agent1, std::string agent2, bool cardinal, 
+        CBSHNode::Ptr node) {
+            std::string a1 = agent1 < agent2 ? agent1: agent2;
+            std::string a2 = agent1 < agent2 ? agent2: agent1;
+            std::set<Constraint> s1, s2;
+            for(auto c_step: node->paths_.at(a1).GetConstraints()) {
+                for(auto c: c_step){
+                    Constraint con(c);
+                    s1.insert(con);
+                }
+            }
+            int s_len = s1.size();  // debug
+            for(auto c_step: node->paths_.at(a2).GetConstraints()) {
+                for(auto c: c_step){
+                    Constraint con(c);
+                    s2.insert(c);
+                }
+            }
+            Htable h1(a1, s1);
+            Htable h2(a2, s2);
+            if(strategy_level_ > 2) {
+                auto iter = htable_.find(h1);
+                if(iter != htable_.end()) {
+                    auto iter2 = iter->second.find(h2);
+                    if(iter2 != iter->second.end()) {
+                        return std::make_pair(iter2->second, true);
+                    }
+                }
+            }
+            int result = 0;
+            if(cardinal) {
+                result = 1;
+            }
+            else if (strategy_level_ >=3) {
+                MDD::Ptr mdd1 = node->BuildMDD(a1);
+                MDD::Ptr mdd2 = node->BuildMDD(a2);
+                if(mdd1->GetLevelSize() > mdd2->GetLevelSize()){
+                    MDD::Ptr temp = mdd1;
+                    mdd1 = mdd2;
+                    mdd2 = temp;
+                }
+
+                if(!node->SyncMDDs(*mdd1, *mdd2)) {
+                    result = 1;
+                }
+                else{
+                    result = 0;
+                }
+            }
+
+            // TODO
+            if(strategy_level_ == 4 && result > 0) { // WDG
+                std::vector<std::string> agentids = {agent1, agent2};
+                std::map<std::string, CBSHPath> initpaths;
+                initpaths[agent1] = node->GetPath(agent1);
+                initpaths[agent2] = node->GetPath(agent2);
+                std::vector<int> cons1_d;   //debug
+                for(auto cons_lost: initpaths[agent1].GetConstraints() ) {
+                    cons1_d.push_back(cons_lost.size());
+                }
+                std::vector<int> cons2_d;
+                for(auto cons_lost: initpaths[agent2].GetConstraints() ) {
+                    cons2_d.push_back(cons_lost.size());
+                }
+                int cost_shortestpath = initpaths[agent1].Size() + initpaths[agent2].Size() - 2;
+                int upperbound = initpaths[agent1].Size() + initpaths[agent2].Size() + 10;
+                CBSHSearch temp_plan(map_, agentids, initpaths, 1.0, std::max(result, 0), 3,
+                rectangle_reasoning_, upperbound, 0.0, block_ );
+                temp_plan.MakePlan();
+                //TODO:超时处理
+                if(temp_plan.solution_cost_ < 0) {
+                    result = temp_plan.solution_cost_;
+                }
+                else {
+                    result = temp_plan.solution_cost_ - cost_shortestpath;
+                }
+            }
+            
+            htable_[h1][h2] = result;
+            return std::make_pair(result, false);
+        }
+
+    } // namespace CBSH
+} // namespace mapf
