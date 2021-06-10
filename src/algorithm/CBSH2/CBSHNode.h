@@ -24,7 +24,7 @@ namespace mapf {
         {
         private:
             const std::vector<std::string> &agent_ids_;
-            const int &strategy_level_;
+            std::string strategy_;
             const bool &rectangle_reasoning_;
             const Map::ConstPtr &map_;
             const std::unordered_map<std::string, std::vector<int> > &astar_h_;
@@ -32,8 +32,6 @@ namespace mapf {
             std::string constraint_agent_;
             int depth_;
             bool has_compute_h_;
-
-            std::map<Htable, std::map<Htable, int> > &htable_;   // WDG使用，记录所有dege的weight
 
             std::map<MDDTable, MDD::Ptr> &mddtable_;
 
@@ -66,15 +64,13 @@ namespace mapf {
             std::map<std::string, CBSHPath> paths_;    // 所有路径
 
             CBSHNode(const std::vector<std::string> &agent_ids, const std::vector<int> &starts,
-                const std::vector<int> &goals, const int &strategy_level, 
+                const std::vector<int> &goals, std::string strategy, 
                 const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<Htable, std::map<Htable, int> > &htable,
                 std::map<MDDTable, MDD::Ptr> &mddtable, 
                 std::unordered_map<std::string, std::vector<int> > &astar_h, 
                 const bool &block);
-            CBSHNode(const std::vector<std::string> &agent_ids, const int &strategy_level, 
+            CBSHNode(const std::vector<std::string> &agent_ids, std::string strategy, 
                 const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<Htable, std::map<Htable, int> > &htable,
                 std::map<MDDTable, MDD::Ptr> &mddtable, 
                 std::unordered_map<std::string, std::vector<int> > &astar_h, 
                 const bool &block, std::map<std::string, CBSHPath> init_paths, 

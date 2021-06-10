@@ -7,16 +7,15 @@ namespace mapf {
     namespace CBSH {
 
         CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, const std::vector<int> &starts,
-                const std::vector<int> &goals, const int &strategy_level, 
+                const std::vector<int> &goals, std::string strategy, 
                 const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<Htable, std::map<Htable, int> > &htable,
                 std::map<MDDTable, MDD::Ptr> &mddtable, 
                 std::unordered_map<std::string, std::vector<int> > &astar_h, 
                 const bool &block)
                 : makespan_(0), total_cost_(0), node_g_cost_(0), node_h_cost_(0),
-                  agent_ids_(agent_ids), strategy_level_(strategy_level),
+                  agent_ids_(agent_ids), strategy_(strategy),
                   rectangle_reasoning_(rectangle_reasoning),
-                  map_(map), parent_h_cost_(-1), htable_(htable), mddtable_(mddtable),
+                  map_(map), parent_h_cost_(-1), mddtable_(mddtable),
                   depth_(0), astar_h_(astar_h), block_(block), has_compute_h_(false)
         {
             // 初始规划
@@ -35,17 +34,16 @@ namespace mapf {
             FindConflictRoot();
         }
 
-        CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, const int &strategy_level, 
+        CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, std::string strategy, 
                 const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<Htable, std::map<Htable, int> > &htable,
                 std::map<MDDTable, MDD::Ptr> &mddtable, 
                 std::unordered_map<std::string, std::vector<int> > &astar_h, 
                 const bool &block, std::map<std::string, CBSHPath> init_paths, 
                 int init_h)
                 : makespan_(0), total_cost_(0), node_g_cost_(0), node_h_cost_(init_h),
-                  agent_ids_(agent_ids), strategy_level_(strategy_level),
+                  agent_ids_(agent_ids), strategy_(strategy),
                   rectangle_reasoning_(rectangle_reasoning),
-                  map_(map), parent_h_cost_(-1), htable_(htable), mddtable_(mddtable),
+                  map_(map), parent_h_cost_(-1), mddtable_(mddtable),
                   depth_(0), astar_h_(astar_h), block_(block), has_compute_h_(false)
         {
             paths_.clear();
@@ -64,10 +62,10 @@ namespace mapf {
               total_cost_(node->total_cost_), node_g_cost_(node->node_g_cost_), node_h_cost_(node->node_h_cost_), // cost复制父节点
               agent_ids_(node->agent_ids_), paths_(node->paths_),
               num_of_collisions_(node->num_of_collisions_), conflict_graph_(node->conflict_graph_),
-              strategy_level_(node->strategy_level_), 
+              strategy_(node->strategy_), 
               rectangle_reasoning_(node->rectangle_reasoning_),
               map_(node->map_), parent_h_cost_(node->node_h_cost_),
-              htable_(node->htable_), mddtable_(node->mddtable_),
+              mddtable_(node->mddtable_),
               conflicts_(node->conflicts_), astar_h_(node->astar_h_),
               block_(node->block_), has_compute_h_(false)
         {
@@ -83,13 +81,11 @@ namespace mapf {
         }
 
         void CBSHNode::CopyList(std::list<Conflict> & to, const std::list<Conflict> & from) {
-            int f = from.size();    // debug
             for(const auto c: from) {
                 if(c.GetAgent(0) != constraint_agent_ && c.GetAgent(1) != constraint_agent_) {
                     to.push_back(c);
                 }
             }
-            int t = to.size();  // debug
         }
 
         float CBSHNode::GetTotalCost() const {
@@ -140,12 +136,6 @@ namespace mapf {
             }
             num_of_collisions_ = unknown_conf_.size() + cardinal_conf_.size() + rectSemi_conf_.size() + 
                 semi_conf_.size() + rectNon_conf_.size() + non_conf_.size();
-            int unkown = unknown_conf_.size();  // debug
-            int cardinal = cardinal_conf_.size();
-            int rectsemi = rectSemi_conf_.size();
-            int semiconf = semi_conf_.size();
-            int rectnon = rectNon_conf_.size();
-            int non = non_conf_.size();
         }
 
         void CBSHNode::FindConflict(std::string agent_id) {
@@ -202,12 +192,6 @@ namespace mapf {
             }
             num_of_collisions_ = unknown_conf_.size() + cardinal_conf_.size() + rectSemi_conf_.size() + 
                 semi_conf_.size() + rectNon_conf_.size() + non_conf_.size();
-            int unkown = unknown_conf_.size();  // debug
-            int cardinal = cardinal_conf_.size();
-            int rectsemi = rectSemi_conf_.size();
-            int semiconf = semi_conf_.size();
-            int rectnon = rectNon_conf_.size();
-            int non = non_conf_.size();
         }
 
         bool CBSHNode::LLPlan(std::string agent_id, int lower_bound) {
@@ -226,8 +210,6 @@ namespace mapf {
             int goal_loc = paths_.at(agent_id).GetGoalLoc();
             std::vector<int> mapoffset = map_->GetMoveOffset();
 
-            //LOG_DEBUG_STREAM("Start loc: " << start_loc << "; goal loc: " << goal_loc);
-
             LLNode::Ptr start;
             start.reset(new LLNode(start_loc, 0, astar_h_.at(agent_id)[start_loc], nullptr, 0, 0));
             start->open_handle_ = open_list_.push(start);
@@ -245,8 +227,6 @@ namespace mapf {
                 int curr_loc = curr_node->GetLoc();
                 int curr_timestep = curr_node->GetTimeStep();
 
-                //LOG_DEBUG_STREAM("Low leve curr node loc: " << curr_node->GetLoc() << "; timestep: "
-                //<< curr_node->GetTimeStep());
                 // 找到规划
                 if(curr_loc == goal_loc && curr_timestep >= lower_bound) {
                     // 更新路径
@@ -287,7 +267,6 @@ namespace mapf {
                         }
                     }
                     if(map_->ValidMove(curr_loc, next_loc) && 
-                    //(!map_->IsBlocked(next_loc) || next_loc == goal_loc) &&   // 对未顶货架智能体，货架不是障碍物
                     !paths_.at(agent_id).IsConstrainted(curr_loc, next_loc, next_timestep)) {
                         // 计算该步代价
                         int next_g_cost = curr_node->GetGCost() + 1;
@@ -375,9 +354,6 @@ namespace mapf {
                     min_len = new_min_len;
                 }
             }// end while loop
-            //open_list_.clear();
-            //focal_list_.clear();
-            //all_LL_node_table_.clear();
             return false;
         }
 
@@ -432,7 +408,7 @@ namespace mapf {
 
                 if(cardinal1 && cardinal2) {
                     cardinal_conf_.push_back(conf);
-                    if(strategy_level_ <= 1) {
+                    if(strategy_ == "NONE") {
                         return;
                     }
                     continue;
@@ -502,13 +478,6 @@ namespace mapf {
                 }
             }
 
-            int unkown1 = unknown_conf_.size();  // debug
-            int cardinal1 = cardinal_conf_.size();
-            int rectsemi1 = rectSemi_conf_.size();
-            int semiconf1 = semi_conf_.size();
-            int rectnon1 = rectNon_conf_.size();
-            int non1 = non_conf_.size();
-
             // 释放部分不用的冲突，节约存储空间，需按顺序进行处理
             RemoveLowPriorityConflict(cardinal_conf_);
             RemoveLowPriorityConflict(rectSemi_conf_);
@@ -516,13 +485,6 @@ namespace mapf {
             RemoveLowPriorityConflict(rectNon_conf_);
             RemoveLowPriorityConflict(non_conf_);
             high_priority_.clear();
-            
-            int unkown = unknown_conf_.size();  // debug
-            int cardinal = cardinal_conf_.size();
-            int rectsemi = rectSemi_conf_.size();
-            int semiconf = semi_conf_.size();
-            int rectnon = rectNon_conf_.size();
-            int non = non_conf_.size();
 
         }
 
@@ -1316,7 +1278,7 @@ namespace mapf {
         }
 
         void CBSHNode::CopyConflictGraph(const std::map<std::pair<std::string, std::string>, int> &conf_graph) {
-            if(strategy_level_ >= 3) {
+            if(strategy_ == "DG" || strategy_ == "WDG") {
                 for(auto c: conf_graph) {
                     if(c.first.first != constraint_agent_ && c.first.second != constraint_agent_) {
                         conflict_graph_[c.first] = c.second;

@@ -52,8 +52,6 @@ namespace mapf {
         }
 
         void CBSHPath::AddConstraint(Constraint cons) {
-            int cons_size = constraints_.size();    //debug
-            int timestep = cons.GetTimestep();  //debug
             constraints_[cons.GetTimestep()].push_back(cons);
         }
 
@@ -76,9 +74,6 @@ namespace mapf {
             auto s = constraints_.size();
             if(next_timestep < constraints_.size()) {
                 for(auto iter = constraints_[next_timestep].begin(); iter != constraints_[next_timestep].end(); ++iter) {
-                    auto ty = iter->GetType();  //debug
-                    auto l1 = iter->GetLoc(0);
-                    auto l2 = iter->GetLoc(1);
                     if((iter->GetType() == "vertex" && iter->GetLoc(0) == next_loc) || 
                         (iter->GetType() == "edge" && iter->GetLoc(0) == curr_loc && iter->GetLoc(1) == next_loc)) {
                         return true;

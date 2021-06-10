@@ -17,13 +17,12 @@ namespace mapf {
         class CBSHSearch : public mapf::Plan
         {
         private:
-            int agent_num_;
-            const std::vector<std::string> &agent_ids_;
+            std::vector<std::string> agent_ids_;
             const mapf::Map::ConstPtr &map_;
-            const int strategy_level_;
+            std::string strategy_;  //默认使用PC，范围：NONE,CG,DG,WDG
             bool rectangle_reasoning_; // TODO:rectangle reasoning using MDDs
             
-            int HL_generate_num_;   // 计数，考察算法性能
+            int HL_expend_num_;   // 计数，考察算法性能
             float focal_list_threshold_;    // 筛选部分节点的阈值
             float focal_w_; // 性能放松比例，范围>=1，设置为1.0则寻找最优解
             float min_f_cost_;  // 记录最小f cost
@@ -35,7 +34,7 @@ namespace mapf {
             bool block_;    // 如果agent托着货架，block为true，不能钻货架
 
             CBSHNode::Ptr root_;
-            double root_t_;
+            double compute_astarh_time_;
 
             std::unordered_map<std::string, std::vector<int> > astar_h_;  // key为agent id，value为astar的h值，每次规划需重新计算
 
@@ -48,13 +47,10 @@ namespace mapf {
             // 选择部分节点作为每次选取范围
             boost::heap::fibonacci_heap<CBSHNode::Ptr, boost::heap::compare<CBSHNode::Focal_compare> > focal_list_;
         public:
-            // param: strategy_level: [0,1,2,3,4]对应[CBS,PC,CG,DG,WDG]
             // 对应level会使用低level所有方法
+            CBSHSearch(const Map::ConstPtr &map, const std::vector<Agent::Ptr> &agents, bool block);
             CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids, 
-                const int strategy_level, float focal_w, bool rectangle_reasoning, 
-                bool block, const std::vector<int> &starts, const std::vector<int> &goals);
-            CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids, 
-                std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, int strategy_level, 
+                std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy, 
                 bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block);
             ~CBSHSearch() = default;
 

@@ -1,0 +1,12 @@
+{
+    "strategy":"WDG",
+    "focal":1.0,
+    "rectangle_reasoning":false,
+	"map_path":"/home/ld/mapf/data/lak503d.map",
+    "agent_path":"/home/ld/mapf/data/lak503dmap-100agents-2.csv",
+    "random_agent":{
+        "agent_num":75,
+        "random_agent_path":"/home/ld/mapf/data/agents.csv",
+	    "random_seed":10
+    }
+}

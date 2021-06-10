@@ -6,72 +6,76 @@
 #include "CBSHSearch.h"
 #include "log.h"
 #include "LLNode.h"
+#include "cbsh_config.h"
 
 namespace mapf{
     namespace CBSH {
 
-        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids, 
-            const int strategy_level, float focal_w, bool rectangle_reasoning, bool block, 
-            const std::vector<int> &starts, const std::vector<int> &goals) 
-            : map_(map), strategy_level_(strategy_level), agent_ids_(agent_ids),
-              HL_generate_num_(0), focal_w_(focal_w), rectangle_reasoning_(rectangle_reasoning),
-              block_(block), solution_cost_(-2), cost_upperbound_(std::numeric_limits<int>::max())
+        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<Agent::Ptr> &agents, bool block) 
+            : map_(map), HL_expend_num_(0), block_(block), solution_cost_(-2),
+              cost_upperbound_(std::numeric_limits<int>::max())
         {
-            agent_num_ = agent_ids.size();
             auto root_s = std::chrono::system_clock::now();
+            std::vector<int> starts;
+            std::vector<int> goals;
             // 计算astar h
-            for(int i = 0; i < goals.size(); ++i) {
-                std::string a = agent_ids_[i];
-                ComputeH(goals[i], a);
+            for(auto a: agents) {
+                ComputeH(a->GetGoal(), a->GetId());
+                starts.push_back(a->GetStart());
+                goals.push_back(a->GetGoal());
+                agent_ids_.push_back(a->GetId());
             }
-            auto mp_ch_e = std::chrono::system_clock::now();            
+            auto mp_ch_e = std::chrono::system_clock::now();
+
+            CBSHConfig::Ptr cbsh_config;
+            cbsh_config.reset(new CBSHConfig());
+            strategy_ = cbsh_config->GetStrategy();
+            focal_w_ = cbsh_config->GetFocal();
+            rectangle_reasoning_ = cbsh_config->GetRectangle();
 
             open_list_.clear();
             focal_list_.clear();
 
             // 规划根节点
             // 构造根节点时进行初始规划、识别冲突
-            root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_level_, rectangle_reasoning_,
-                map_, htable_, mddtable_, astar_h_, block_));
+            root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_, rectangle_reasoning_,
+                map_, mddtable_, astar_h_, block_));
 
             root_->open_handle_ = open_list_.push(root_);
             root_->focal_handle_ = focal_list_.push(root_);
-            ++HL_generate_num_;
-            focal_list_threshold_ = root_->GetTotalCost() * focal_w_;
             min_f_cost_ = root_->GetTotalCost();
+            focal_list_threshold_ = min_f_cost_ * focal_w_;
+
             LOG_DEBUG_STREAM("High level build root.");
-            auto mp_root_e = std::chrono::system_clock::now();
-            auto mp_root_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_root_e - root_s);
-            root_t_ = double(mp_root_d.count()) * std::chrono::microseconds::period::num / 
+            auto mp_root_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_ch_e - root_s);
+            compute_astarh_time_ = double(mp_root_d.count()) * std::chrono::microseconds::period::num / 
             std::chrono::microseconds::period::den;
         }
 
         CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids, 
-        std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, int strategy_level, 
+        std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy, 
         bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block)
-            : map_(map), strategy_level_(strategy_level), agent_ids_(agent_ids),
-              HL_generate_num_(0), focal_w_(f_w), rectangle_reasoning_(rectangle_reasoning),
+            : map_(map), strategy_(strategy), agent_ids_(agent_ids),
+              HL_expend_num_(0), focal_w_(f_w), rectangle_reasoning_(rectangle_reasoning),
               block_(block), cost_upperbound_(cost_upperbound), time_limit_(time_limit),
               solution_cost_(-2)
         {
-            agent_num_ = agent_ids.size();
             // 计算astar h
             for(auto p: init_paths) {
                 std::string a = p.first;
                 ComputeH(p.second.GetGoalLoc(), a);
-            }           
+            }
 
             open_list_.clear();
             focal_list_.clear();
 
             // 规划根节点
             // 构造根节点时进行初始规划、识别冲突
-            root_.reset(new CBSHNode(agent_ids_, strategy_level_, rectangle_reasoning_,
-                map_, htable_, mddtable_, astar_h_, block_, init_paths, init_h));
+            root_.reset(new CBSHNode(agent_ids_, strategy_, rectangle_reasoning_,
+                map_, mddtable_, astar_h_, block_, init_paths, init_h));
 
             root_->open_handle_ = open_list_.push(root_);
             root_->focal_handle_ = focal_list_.push(root_);
-            ++HL_generate_num_;
             min_f_cost_ = root_->GetTotalCost();
             focal_list_threshold_ = min_f_cost_ * focal_w_;
         }
@@ -84,52 +88,39 @@ namespace mapf{
                     solution_cost_ = min_f_cost_;
                     return false;
                 }
-                auto mp_whi_s = std::chrono::system_clock::now();
                 CBSHNode::Ptr current_node = focal_list_.top();
                 focal_list_.pop();
                 open_list_.erase(current_node->open_handle_);
-                auto ps = current_node->GetPaths(); //debug
-                int dep = current_node->GetDepth(); //debug
-                auto curr_top = *current_node; //debug
-                std::string cons_agent_d = current_node->GetConsAgent();    //debug
 
                 if(current_node->GetCollisionNum() == 0){ // 无冲突，规划完成
-                    auto curr = *current_node; //debug
-                    ps = current_node->GetPaths(); //debug
-                    solution_cost_ = current_node->GetGCost();   //debug
+                    solution_cost_ = current_node->GetGCost();
                     RecordPlan(current_node);
                     auto mp_e = std::chrono::system_clock::now();
                     auto mp_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_e - mp_s);
                     LOG_DEBUG_STREAM("Finish make plan, time: " << double(mp_d.count()) * 
                     std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
-                    LOG_DEBUG_STREAM("Generate High Level nodes: " << HL_generate_num_);
-                    LOG_DEBUG_STREAM("High level root, time: " << root_t_);
+                    LOG_DEBUG_STREAM("Generate High Level nodes: " << HL_expend_num_);
+                    LOG_DEBUG_STREAM("High level root, time: " << compute_astarh_time_);
                     LOG_DEBUG_STREAM("G cost: " << current_node->GetGCost());
                     LOG_DEBUG_STREAM("Makespan: " << current_node->GetMakespan());
                     return true;
                 }
-                else if(strategy_level_ <= 1) {
-                    if(strategy_level_ == 1) {
-                        current_node->ClassifyConflicts();
-                    }
+                else if(strategy_ == "NONE") {
+                    current_node->ClassifyConflicts();
                     current_node->ChooseConflict();
                 }
                 else if(!current_node->HasComputeH()){
-                    if(strategy_level_ >= 1){   // 使用ICBS的PC(prioritiza conflict)方法
-                        current_node->ClassifyConflicts();
+                    current_node->ClassifyConflicts();
+                    // 计算冲突启发式函数，更新节点cost
+                    int h = ComputeHeuristics(current_node);
+                    if(h < 0){  // no solution
+                        UpdateFocalList();
+                        continue;
                     }
-                    if(strategy_level_ >= 2){   // 计算冲突启发式函数，更新节点cost
-                        int h = ComputeHeuristics(current_node);
-                        if(h < 0){  // no solution
-                            UpdateFocalList();
-                            continue;
-                        }
-                        else {
-                            current_node->UpdateCost(h);
-                        }
+                    else {
+                        current_node->UpdateCost(h);
                     }
                     current_node->ChooseConflict();
-                    float f_d = current_node->GetTotalCost();   //  debug
                     if(current_node->GetTotalCost() > focal_list_threshold_){
                         current_node->open_handle_ = open_list_.push(current_node);
                         UpdateFocalList();
@@ -137,26 +128,12 @@ namespace mapf{
                     }
                 }
 
-                // debug
-                int total_cost_d = current_node->GetTotalCost();
-                int node_g_cost_d = current_node->GetGCost();
-                int node_h_cost_d = current_node->GetHCost();
-                int num_of_collisions_d = current_node->GetCollisionNum();
-                int makespan_d = current_node->GetMakespan();
-                int depth_d = current_node->GetDepth();
-
                 // 扩展左右节点
                 CBSHNode::Ptr left;
                 CBSHNode::Ptr right;
+                ++HL_expend_num_;
 
                 // 生成限制
-                int f_cost = current_node->GetTotalCost();
-                int h_cost = current_node->GetHCost();
-                int g_cost = current_node->GetGCost();
-                std::vector<Conflict> current_con;  //debug
-                for(auto c: current_node->GetConflicts()) {
-                    current_con.push_back(c);
-                }   // debug
                 Conflict curr_conf = current_node->GetLastestConflict();
                 LOG_DEBUG_STREAM("Conflict type: " << curr_conf.Type());
                 std::string conf_agent1 = curr_conf.GetAgent(0);
@@ -204,10 +181,6 @@ namespace mapf{
                 LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent2);
 
                 UpdateFocalList();
-                auto mp_whi_e = std::chrono::system_clock::now();
-                auto mp_whi_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_whi_e - mp_whi_s);
-                LOG_DEBUG_STREAM("Finish high level node, time: " << double(mp_whi_d.count()) * 
-                std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
             } // end of while loop
             return false;
         }
@@ -241,7 +214,6 @@ namespace mapf{
             node->CopyConflictGraph(conflict_graph);
 
             node->open_handle_ = open_list_.push(node);
-            ++HL_generate_num_;
             if(node->GetTotalCost() <= focal_list_threshold_) {
                 node->focal_handle_ = focal_list_.push(node);
             }
@@ -275,7 +247,6 @@ namespace mapf{
         // 更新focal list threshold
         void CBSHSearch::UpdateFocalList() {
             float new_f_cost = open_list_.top()->GetTotalCost();
-            auto top_d = *open_list_.top();  //debug
             if(new_f_cost > min_f_cost_) {
                 min_f_cost_ = new_f_cost;
                 float new_focal_list_threshold = min_f_cost_ *focal_w_;
@@ -394,7 +365,7 @@ namespace mapf{
                 LLNode::Ptr curr_node = open_list.top();
                 open_list.pop();
 
-                for(int i = 0; i < 5; ++i) {
+                for(int i = 0; i < 4; ++i) {
                     int curr_loc = curr_node->GetLoc();
                     int next_loc = curr_loc + moveoffset[i];
                     if(block_ && map_->IsBlocked(next_loc)) {
@@ -430,7 +401,7 @@ namespace mapf{
             int agent_num = agent_ids_.size();
             int edge_num = 0;
             std::map<std::pair<std::string, std::string>, int> conf_graph;
-            if(strategy_level_ == 2) {  // 使用CG
+            if(strategy_ == "CG") {  // 使用CG
                 auto cardinal_conf = node->GetCardinalConf();
                 for(auto iter = cardinal_conf.begin(); iter != cardinal_conf.end(); ++iter) {
                     std::string agent_id1 = iter->GetAgent(0);
@@ -443,7 +414,7 @@ namespace mapf{
                     }
                 }
             }
-            else {  // 使用DG或WDG，strategy level为3或4
+            else {  // 使用DG或WDG
                 if(!BuildDependenceGraph(node)) {
                     return -1;
                 }
@@ -461,9 +432,8 @@ namespace mapf{
             }
 
             int result;
-            if(strategy_level_ == 4) {
+            if(strategy_ == "WDG") {
                 result = node->WeightedVertexCorver(conf_graph);
-                int temp = 1; //debug
             }
             else {
                 result = node->MinimumVertexCover(conf_graph, edge_num);
@@ -476,10 +446,7 @@ namespace mapf{
             for(auto conf: node->cardinal_conf_) {
                 std::string agent_id1 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(0): conf.GetAgent(1);
                 std::string agent_id2 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(1): conf.GetAgent(0);
-                if((agent_id1 == "8" && agent_id2 == "17") || (agent_id1 == "17" && agent_id2 == "8")) {	//debug
-                    int temp=1;
-                }
-                if(strategy_level_ == 3) {
+                if(strategy_ == "DG") {
                     node->conflict_graph_[std::make_pair(agent_id1, agent_id2)] = 1;
                 }
                 else if (node->conflict_graph_.find(std::make_pair(agent_id1, agent_id2)) == node->conflict_graph_.end()) {
@@ -493,9 +460,6 @@ namespace mapf{
             for(auto conf: node->semi_conf_) {
                 std::string agent_id1 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(0): conf.GetAgent(1);
                 std::string agent_id2 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(1): conf.GetAgent(0);
-                if((agent_id1 == "8" && agent_id2 == "17") || (agent_id1 == "17" && agent_id2 == "8")) {	//debug
-                    int temp=1;
-                }
                 if (node->conflict_graph_.find(std::make_pair(agent_id1, agent_id2)) == node->conflict_graph_.end()) {
                     std::pair<int, bool> w_hit = GetEdgeWeight(agent_id1, agent_id2, false, node);
                     if(w_hit.first < 0) {   // no solution
@@ -507,9 +471,6 @@ namespace mapf{
             for(auto conf: node->non_conf_) {
                 std::string agent_id1 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(0): conf.GetAgent(1);
                 std::string agent_id2 = conf.GetAgent(0) < conf.GetAgent(1) ? conf.GetAgent(1): conf.GetAgent(0);
-                if((agent_id1 == "8" && agent_id2 == "17") || (agent_id1 == "17" && agent_id2 == "8")) {	//debug
-                    int temp=1;
-                }
                 if (node->conflict_graph_.find(std::make_pair(agent_id1, agent_id2)) == node->conflict_graph_.end()) {
                     std::pair<int, bool> w_hit = GetEdgeWeight(agent_id1, agent_id2, false, node);
                     if(w_hit.first < 0) {   // no solution
@@ -532,7 +493,6 @@ namespace mapf{
                     s1.insert(con);
                 }
             }
-            int s_len = s1.size();  // debug
             for(auto c_step: node->paths_.at(a2).GetConstraints()) {
                 for(auto c: c_step){
                     Constraint con(c);
@@ -541,7 +501,7 @@ namespace mapf{
             }
             Htable h1(a1, s1);
             Htable h2(a2, s2);
-            if(strategy_level_ > 2) {
+            if(strategy_ != "NONE") {
                 auto iter = htable_.find(h1);
                 if(iter != htable_.end()) {
                     auto iter2 = iter->second.find(h2);
@@ -554,7 +514,7 @@ namespace mapf{
             if(cardinal) {
                 result = 1;
             }
-            else if (strategy_level_ >=3) {
+            else if (strategy_ == "DG" || strategy_ == "WDG") {
                 MDD::Ptr mdd1 = node->BuildMDD(a1);
                 MDD::Ptr mdd2 = node->BuildMDD(a2);
                 if(mdd1->GetLevelSize() > mdd2->GetLevelSize()){
@@ -571,23 +531,14 @@ namespace mapf{
                 }
             }
 
-            // TODO
-            if(strategy_level_ == 4 && result > 0) { // WDG
+            if(strategy_ == "WDG" && result > 0) { // WDG
                 std::vector<std::string> agentids = {agent1, agent2};
                 std::map<std::string, CBSHPath> initpaths;
                 initpaths[agent1] = node->GetPath(agent1);
                 initpaths[agent2] = node->GetPath(agent2);
-                std::vector<int> cons1_d;   //debug
-                for(auto cons_lost: initpaths[agent1].GetConstraints() ) {
-                    cons1_d.push_back(cons_lost.size());
-                }
-                std::vector<int> cons2_d;
-                for(auto cons_lost: initpaths[agent2].GetConstraints() ) {
-                    cons2_d.push_back(cons_lost.size());
-                }
                 int cost_shortestpath = initpaths[agent1].Size() + initpaths[agent2].Size() - 2;
                 int upperbound = initpaths[agent1].Size() + initpaths[agent2].Size() + 10;
-                CBSHSearch temp_plan(map_, agentids, initpaths, 1.0, std::max(result, 0), 3,
+                CBSHSearch temp_plan(map_, agentids, initpaths, 1.0, std::max(result, 0), "DG",
                 rectangle_reasoning_, upperbound, 0.0, block_ );
                 temp_plan.MakePlan();
                 //TODO:超时处理
