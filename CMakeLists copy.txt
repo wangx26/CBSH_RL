@@ -23,7 +23,6 @@ aux_source_directory(${PROJECT_SOURCE_DIR}/src/common/mapf_map SRCS)
 aux_source_directory(${PROJECT_SOURCE_DIR}/src/config SRCS)
 aux_source_directory(${PROJECT_SOURCE_DIR}/src/visualization SRCS)
 aux_source_directory(${PROJECT_SOURCE_DIR}/src/log SRCS)
-aux_source_directory(${PROJECT_SOURCE_DIR}/src/main.cpp SRCS)
 
 set(CMAKE_MODULE_PATH
         APPEND "${PROJECT_SOURCE_DIR}/src/log/"
@@ -31,6 +30,7 @@ set(CMAKE_MODULE_PATH
 
 find_package(Boost REQUIRED COMPONENTS
         program_options
+        python
         )
 
 find_package(LOG4CPP REQUIRED)
@@ -42,12 +42,11 @@ find_package(PkgConfig REQUIRED)
 include_directories(${LOG4CPP_INCLUDE_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_library(${PROJECT_NAME} SHARED src/main.cpp )
+add_executable(${PROJECT_NAME} src/main.cpp ${SRCS} )
 
 target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
         ${LOG4CPP_LIBRARIES}
         ${OpenCV_LIBS}
         jsoncpp
-        -fPIC
         )

@@ -27,7 +27,7 @@ namespace mapf {
     {
         try
         {
-            log4cpp::PropertyConfigurator::configure(std::string(std::getenv("HOME"))+"/mapf/data/config/log.conf");
+            log4cpp::PropertyConfigurator::configure(std::string(std::getenv("HOME"))+"/CBSH_RL/data/config/log.conf");
         }
         catch (log4cpp::ConfigureFailure& f)
         {

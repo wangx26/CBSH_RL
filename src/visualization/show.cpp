@@ -43,14 +43,14 @@ namespace mapf {
                 cv::Point p1(cor.first * scalar_, cor.second * scalar_);
                 cv::Point p2((cor.first + 1) * scalar_, (cor.second + 1) * scalar_);
                 if(image_map[loc] == 1) {
-                    cv::rectangle(img, p1, p2, cv::Scalar(232,197,159), CV_FILLED);
+                    cv::rectangle(img, p1, p2, cv::Scalar(232,197,159), -1);
                     cv::rectangle(img, p1, p2, cv::Scalar(0,0,0), 1);
                 }
                 else if(image_map[loc] == 2) {
-                    cv::rectangle(img, p1, p2, cv::Scalar(49,208,49), CV_FILLED);
+                    cv::rectangle(img, p1, p2, cv::Scalar(49,208,49), -1);
                 }
                 else if(image_map[loc] == 3) {
-                    cv::rectangle(img, p1, p2, cv::Scalar(0,255,255), CV_FILLED);
+                    cv::rectangle(img, p1, p2, cv::Scalar(0,255,255), -1);
                 }
                 else if(image_map[loc] == 4) {
                     //cv::rectangle(img, p1, p2, cv::Scalar(49,208,49));

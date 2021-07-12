@@ -6,7 +6,7 @@
 
 namespace mapf {
     CBSHConfig::CBSHConfig() {
-        config_path_ = "/home/ld/mapf/data/config/cbsh_config.json";
+        config_path_ = "/home/wolf/CBSH_RL/data/config/cbsh_config.json";
         LoadConfig();
     }
 

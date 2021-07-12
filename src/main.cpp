@@ -12,7 +12,7 @@
 #include "cbsh_config.h"
 
 using namespace mapf;
-
+/*
 int main(int argc, char** argv) {
     CBSHConfig::Ptr cbsh_config;
     cbsh_config.reset(new CBSHConfig());
@@ -67,11 +67,45 @@ int main(int argc, char** argv) {
         auto t_d = std::chrono::duration_cast<std::chrono::microseconds>(t_e - t_s);
         LOG_DEBUG_STREAM("Total plan time: " << double(t_d.count()) * 
         std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
-        mapf::Show sh(map, "/home/ld/mapf/data/images", "/home/ld/mapf/data");
-        sh.GenerateImage(result);
-        sh.GenerateVideo();
+        //mapf::Show sh(map, "/home/wolf/CBSH_RL/data/images", "/home/wolf/CBSH_RL/data");
+        //sh.GenerateImage(result);
+        //sh.GenerateVideo();
     };
 
     // show the result
     return 0;
+}*/
+/*
+class World {
+public:
+    void set(std::string msg) { this->msg = msg; }
+    std::string getmsg() { return msg; }
+    std::string msg;
+};*/
+/*
+BOOST_PYTHON_MODULE(hello) {//导出的module 名字
+    class_<World>("World")
+        .def("greet", &World::greet)
+        .def("set", &World::set);
+}*/
+class PythonTest{
+public:
+    PythonTest(){
+
+    }   
+
+    int init(int num){
+        printf("inited ok\n");
+        return 0;
+    }
+};
+extern "C" {
+    PythonTest py; 
+
+    int init(int num){
+        return py.init(num);
+    }
+    void print_msg(const char* s) {
+        std::cout<<s<<std::endl;
+    }
 }
