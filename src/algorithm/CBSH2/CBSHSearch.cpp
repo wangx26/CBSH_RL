@@ -11,9 +11,9 @@
 namespace mapf{
     namespace CBSH {
 
-        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<Agent::Ptr> &agents, bool block) 
+        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<Agent::Ptr> &agents, bool block)
             : map_(map), HL_expend_num_(0), block_(block), solution_cost_(-2),
-              cost_upperbound_(std::numeric_limits<int>::max())
+              cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false)
         {
             auto root_s = std::chrono::system_clock::now();
             std::vector<int> starts;
@@ -48,12 +48,12 @@ namespace mapf{
 
             LOG_DEBUG_STREAM("High level build root.");
             auto mp_root_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_ch_e - root_s);
-            compute_astarh_time_ = double(mp_root_d.count()) * std::chrono::microseconds::period::num / 
+            compute_astarh_time_ = double(mp_root_d.count()) * std::chrono::microseconds::period::num /
             std::chrono::microseconds::period::den;
         }
 
-        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids, 
-        std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy, 
+        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids,
+        std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy,
         bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block)
             : map_(map), strategy_(strategy), agent_ids_(agent_ids),
               HL_expend_num_(0), focal_w_(f_w), rectangle_reasoning_(rectangle_reasoning),
@@ -80,6 +80,81 @@ namespace mapf{
             focal_list_threshold_ = min_f_cost_ * focal_w_;
         }
 
+        void CBSHSearch::Reset() {
+            LOG_DEBUG_STREAM("Reset state");
+            open_list_.clear();
+            focal_list_.clear();
+            curr_node_ = root_;
+            min_f_cost_ = root_->GetTotalCost();
+            focal_list_threshold_ = min_f_cost_ * focal_w_;
+            if (curr_node_->GetCollisionNum() == 0) rl_done_ = true;
+            else rl_done_ = false;
+        }
+
+        bool CBSHSearch::Step(int a1, int a2, int t) {
+            if (!IsCons(a1, a2, t)) return false;
+            std::string conf_agent1 = agent_ids_.at(a1);
+            std::string conf_agent2 = agent_ids_.at(a2);
+            int loc1 = curr_node_->GetPaths().at(conf_agent1).GetLoc(t);
+            int loc2 = curr_node_->GetPaths().at(conf_agent2).GetLoc(t);
+            // 扩展左右节点
+            CBSHNode::Ptr left;
+            CBSHNode::Ptr right;
+            ++HL_expend_num_;
+
+            left.reset(new CBSHNode(curr_node_, conf_agent1));
+            right.reset(new CBSHNode(curr_node_, conf_agent2));
+            LOG_DEBUG_STREAM("Conflict loc1: " << loc1 << "; loc2: " << loc2 << "; timestep: " << t);
+            Constraint cons1(conf_agent1, "vertex");
+            Constraint cons2(conf_agent2, "vertex");
+            cons1.SetConstraint(loc1, -1, t);
+            left->AddConstraint(conf_agent1, cons1);
+            cons2.SetConstraint(loc2, -1, t);
+
+            BuildChild(left, conf_agent1, curr_node_->GetConflictGraph());
+            LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent1);
+            BuildChild(right, conf_agent2, curr_node_->GetConflictGraph());
+            LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent2);
+            UpdateFocalList();
+
+            while (!focal_list_.empty()) {
+                curr_node_ = focal_list_.top();
+                focal_list_.pop();
+                open_list_.erase(curr_node_->open_handle_);
+                if(curr_node_->GetCollisionNum() == 0){ // 无冲突，规划完成
+                    solution_cost_ = curr_node_->GetGCost();
+                    rl_done_ = true;
+                } else if (strategy_ != "NONE" && !curr_node_->HasComputeH()){
+                    curr_node_->ClassifyConflicts();
+                    // 计算冲突启发式函数，更新节点cost
+                    int h = ComputeHeuristics(curr_node_);
+                    if (h < 0){  // no solution
+                        UpdateFocalList();
+                        continue;
+                    } else {
+                        curr_node_->UpdateCost(h);
+                    }
+                    if (curr_node_->GetTotalCost() > focal_list_threshold_){
+                        curr_node_->open_handle_ = open_list_.push(curr_node_);
+                        UpdateFocalList();
+                        continue;
+                    }
+                    break;
+                }
+            }
+        }
+
+        bool CBSHSearch::IsCons(int a1, int a2, int t) {
+            auto path = curr_node_->GetPaths();
+            std::string id1 = agent_ids_[a1], id2 = agent_ids_[a2];
+            if (path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t) ||
+                (path.at(id1).GetLoc(t - 1) == path.at(id2).GetLoc(t) &&
+                path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t - 1))) {
+                return true;
+            }
+            return false;
+        }
+
         bool CBSHSearch::MakePlan() {
             auto mp_s = std::chrono::system_clock::now();
 
@@ -97,7 +172,7 @@ namespace mapf{
                     RecordPlan(current_node);
                     auto mp_e = std::chrono::system_clock::now();
                     auto mp_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_e - mp_s);
-                    LOG_DEBUG_STREAM("Finish make plan, time: " << double(mp_d.count()) * 
+                    LOG_DEBUG_STREAM("Finish make plan, time: " << double(mp_d.count()) *
                     std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
                     LOG_DEBUG_STREAM("Generate High Level nodes: " << HL_expend_num_);
                     LOG_DEBUG_STREAM("High level root, time: " << compute_astarh_time_);
@@ -150,7 +225,7 @@ namespace mapf{
                     s1_time << "; s2 time: " << s2_time);
                     MDD::Ptr mdd1 = current_node->BuildMDD(conf_agent1);
                     MDD::Ptr mdd2 = current_node->BuildMDD(conf_agent2);
-                    AddModifiedBarrierCons(current_node->GetPath(conf_agent1).GetPaths(), 
+                    AddModifiedBarrierCons(current_node->GetPath(conf_agent1).GetPaths(),
                     current_node->GetPath(conf_agent2).GetPaths(), mdd1, mdd2, s1_time, s2_time, Rg, cons1, cons2);
                     left->AddConstraint(conf_agent1, cons1);
                     right->AddConstraint(conf_agent2, cons2);
@@ -189,37 +264,33 @@ namespace mapf{
             return plan_result_;
         }
 
-        bool CBSHSearch::BuildChild(CBSHNode::Ptr &node, std::string cons_agent, 
-        const std::map<std::pair<std::string, std::string>, int> &conflict_graph) {
+        bool CBSHSearch::BuildChild(CBSHNode::Ptr &node, std::string cons_agent,
+                                    const std::map<std::pair<std::string, std::string>, int> &conflict_graph) {
             auto bc_s = std::chrono::system_clock::now();
             int lower_bound;
             Conflict parent_conf = node->GetLastestConflict();
 
-            if(parent_conf.Type() == "rectangle") {
+            if (parent_conf.Type() == "rectangle") {
                 lower_bound = 0;
-            }
-            else if(parent_conf.GetTimestep() >= node->GetPath(cons_agent).Size()) {
+            } else if (parent_conf.GetTimestep() >= node->GetPath(cons_agent).Size()) {
                 lower_bound = parent_conf.GetTimestep() + 1;
-            }
-            else{
+            } else {
                 lower_bound = node->GetPath(cons_agent).Size() - 1;
             }
-            
-            if(!node->LLPlan(cons_agent, lower_bound)){
-                return false;
-            }
+
+            if (!node->LLPlan(cons_agent, lower_bound)) return false;
             // 评估h cost
             node->EstimateH(cons_agent, conflict_graph);
             node->FindConflict(cons_agent);
             node->CopyConflictGraph(conflict_graph);
 
             node->open_handle_ = open_list_.push(node);
-            if(node->GetTotalCost() <= focal_list_threshold_) {
+            if (node->GetTotalCost() <= focal_list_threshold_) {
                 node->focal_handle_ = focal_list_.push(node);
             }
             auto bc_e = std::chrono::system_clock::now();
             auto bc_d = std::chrono::duration_cast<std::chrono::microseconds>(bc_e - bc_s);
-            LOG_DEBUG_STREAM("Finish build child, time: " << double(bc_d.count()) * 
+            LOG_DEBUG_STREAM("Finish build child, time: " << double(bc_d.count()) *
             std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
             return true;
         }
@@ -260,8 +331,8 @@ namespace mapf{
             }
         }
 
-        void CBSHSearch::AddModifiedBarrierCons(std::vector<std::pair<int, bool> > path1, 
-            std::vector<std::pair<int, bool> > path2, MDD::Ptr mdd1, 
+        void CBSHSearch::AddModifiedBarrierCons(std::vector<std::pair<int, bool> > path1,
+            std::vector<std::pair<int, bool> > path2, MDD::Ptr mdd1,
             MDD::Ptr mdd2, int s1, int s2, std::pair<int, int> Rg, Constraint &cons1, Constraint &cons2){
             std::pair<int, int> s1_cor = map_->ToYX(path1[s1].first);
             std::pair<int, int> s2_cor = map_->ToYX(path2[s2].first);
@@ -283,7 +354,7 @@ namespace mapf{
             }
         }
 
-        void CBSHSearch::AddModifiedBarrierConsH(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R, 
+        void CBSHSearch::AddModifiedBarrierConsH(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R,
                 int Rg_t, Constraint &cons){
             int sign = R.second < Rg.second ? 1: -1;
             int Rt = Rg_t - abs(R.second - Rg.second);
@@ -308,7 +379,7 @@ namespace mapf{
                 else if(it != nullptr && t1 < 0) {
                     t1 = t2;
                 }
-                
+
                 if(it != nullptr && t2 == Rg_t) {
                     int loc1 = R.second + (t1 - Rt) * sign + Rg.first * map_->GetWidth();
                     cons.SetConstraint(loc1, loc, t2);
@@ -316,7 +387,7 @@ namespace mapf{
             }
         }
 
-        void CBSHSearch::AddModifiedBarrierConsV(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R, 
+        void CBSHSearch::AddModifiedBarrierConsV(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R,
             int Rg_t, Constraint &cons){
             int sign = R.first < Rg.first ? 1 : -1;
             int Rt = Rg_t - abs(R.first - Rg.first);
@@ -482,7 +553,7 @@ namespace mapf{
             return true;
         }
 
-        std::pair<int, bool> CBSHSearch::GetEdgeWeight(std::string agent1, std::string agent2, bool cardinal, 
+        std::pair<int, bool> CBSHSearch::GetEdgeWeight(std::string agent1, std::string agent2, bool cardinal,
         CBSHNode::Ptr node) {
             std::string a1 = agent1 < agent2 ? agent1: agent2;
             std::string a2 = agent1 < agent2 ? agent2: agent1;
@@ -549,7 +620,7 @@ namespace mapf{
                     result = temp_plan.solution_cost_ - cost_shortestpath;
                 }
             }
-            
+
             htable_[h1][h2] = result;
             return std::make_pair(result, false);
         }
