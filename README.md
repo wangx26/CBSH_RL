@@ -9,18 +9,28 @@
 
 ## 技术路线1
 
-$state(k+1, m, n)$，其中$k$为agent数量，地图尺寸为$m \times n$
+$state(k+1, m)$，其中$k$为agent数量，地图尺寸为$m = width \times height$
 
 $action(a1, a2, t)$， 其中$a$为agent的id，$t$为时间
 
 ## 技术路线2
 
-$state(k+1, m, n)$，其中$k$为agent数量，地图尺寸为$m \times n$
+$state(k+1, m)$，其中$k$为agent数量，地图尺寸为$m = width \times height$
 
 $action(a1, a2, t, score1, score2)$， 其中$a$为agent的id，$t$为时间
 
 ## 技术路线3
 
-$state(k+1, m, n)$，其中$k$为agent数量，地图尺寸为$m \times n$
+$state(k+1, m)$，其中$k$为agent数量，地图尺寸为$m = width \times height$
 
-$action(a, t)$， 其中$a$为agent的id，$t$为时间
+$action(a, t)$， 其中$a$为agent的id，$t$为时间，$t \not ={0}$
+
+action处理方式：
+1. reward加入冲突数评价，避免探索混乱，冲突越来越多。进行归一化，基数为初始时g cost。
+2. 得到解的时候用g cost做为reward，为主要优化目标。进行归一化，基数为初始时g cost。
+3. 如果action不是冲突，通过reward惩罚，保留探索可能，但是不推荐探索，因为这种方式有可能找到最优解，但是会加大训练难度
+
+第3项不好设置，先不设置reward
+
+station问题：
+1. 对某个agent，在地图上对应位置标注时间点，来表示路径。如在同一位置长时间停留，只标志最后停留时刻。（该方法旨在降低信息维度，是否可行待验证）

@@ -109,8 +109,8 @@ public:
         search_->Reset();
     }
 
-    bool Step(int a1, int a2, int t) {
-        return search_->Step(a1, a2, t);
+    void Step(int a, int t) {
+        search_->Step(a, t);
     }
 
     bool isDone() {
@@ -121,7 +121,11 @@ public:
         return search_->solution_cost_;
     }
 
-    std::vector<std::vector<std::vector<int> > > GetState() {
+    int Reward() {
+        return search_->curr_node_->GetCollisionNum();
+    }
+
+    std::vector<std::vector<int> > GetState() {
         //return search_->;
     }
 };

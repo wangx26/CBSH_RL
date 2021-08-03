@@ -91,68 +91,53 @@ namespace mapf{
             else rl_done_ = false;
         }
 
-        bool CBSHSearch::Step(int a1, int a2, int t) {
-            if (!IsCons(a1, a2, t)) return false;
-            std::string conf_agent1 = agent_ids_.at(a1);
-            std::string conf_agent2 = agent_ids_.at(a2);
-            int loc1 = curr_node_->GetPaths().at(conf_agent1).GetLoc(t);
-            int loc2 = curr_node_->GetPaths().at(conf_agent2).GetLoc(t);
+        void CBSHSearch::Step(int a, int t) {
+            //if (!IsCons(a, t)) return false;
+            std::string conf_agent = agent_ids_.at(a);
+            int loc = curr_node_->GetPaths().at(conf_agent).GetLoc(t);
             // 扩展左右节点
-            CBSHNode::Ptr left;
-            CBSHNode::Ptr right;
-            ++HL_expend_num_;
+            CBSHNode::Ptr next;
 
-            left.reset(new CBSHNode(curr_node_, conf_agent1));
-            right.reset(new CBSHNode(curr_node_, conf_agent2));
-            LOG_DEBUG_STREAM("Conflict loc1: " << loc1 << "; loc2: " << loc2 << "; timestep: " << t);
-            Constraint cons1(conf_agent1, "vertex");
-            Constraint cons2(conf_agent2, "vertex");
-            cons1.SetConstraint(loc1, -1, t);
-            left->AddConstraint(conf_agent1, cons1);
-            cons2.SetConstraint(loc2, -1, t);
+            next.reset(new CBSHNode(curr_node_, conf_agent));
+            LOG_DEBUG_STREAM("Conflict loc1: " << loc << "; timestep: " << t);
+            Constraint cons(conf_agent, "vertex");
+            cons.SetConstraint(loc, -1, t);
+            next->AddConstraint(conf_agent, cons);
 
-            BuildChild(left, conf_agent1, curr_node_->GetConflictGraph());
-            LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent1);
-            BuildChild(right, conf_agent2, curr_node_->GetConflictGraph());
-            LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent2);
+            BuildChild(next, conf_agent, curr_node_->GetConflictGraph());
+            LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent);
             UpdateFocalList();
 
-            while (!focal_list_.empty()) {
-                curr_node_ = focal_list_.top();
-                focal_list_.pop();
-                open_list_.erase(curr_node_->open_handle_);
-                if(curr_node_->GetCollisionNum() == 0){ // 无冲突，规划完成
-                    solution_cost_ = curr_node_->GetGCost();
-                    rl_done_ = true;
-                } else if (strategy_ != "NONE" && !curr_node_->HasComputeH()){
-                    curr_node_->ClassifyConflicts();
-                    // 计算冲突启发式函数，更新节点cost
-                    int h = ComputeHeuristics(curr_node_);
-                    if (h < 0){  // no solution
-                        UpdateFocalList();
-                        continue;
-                    } else {
-                        curr_node_->UpdateCost(h);
-                    }
-                    if (curr_node_->GetTotalCost() > focal_list_threshold_){
-                        curr_node_->open_handle_ = open_list_.push(curr_node_);
-                        UpdateFocalList();
-                        continue;
-                    }
-                    break;
-                }
+            curr_node_ = focal_list_.top();
+            focal_list_.pop();
+            open_list_.erase(curr_node_->open_handle_);
+            if (curr_node_->GetCollisionNum() == 0) { // 无冲突，规划完成
+                solution_cost_ = curr_node_->GetGCost();
+                rl_done_ = true;
             }
         }
 
-        bool CBSHSearch::IsCons(int a1, int a2, int t) {
+        bool CBSHSearch::IsCons(int a, int t) const { // TODO:
             auto path = curr_node_->GetPaths();
-            std::string id1 = agent_ids_[a1], id2 = agent_ids_[a2];
+            std::string id1 = agent_ids_[a], id2;
             if (path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t) ||
                 (path.at(id1).GetLoc(t - 1) == path.at(id2).GetLoc(t) &&
                 path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t - 1))) {
                 return true;
             }
             return false;
+        }
+
+        std::vector<std::vector<int> > CBSHSearch::GetState() const {
+            auto map = map_->GetMap();
+            std::vector<std::vector<int> > res;
+            res.push_back(map);
+            for (auto a: agent_ids_) {
+                auto path = curr_node_->GetPaths().at(a).GetPaths();
+                for (int i = 0; i < path.size(); ++i) {
+                    //
+                }
+            }
         }
 
         bool CBSHSearch::MakePlan() {

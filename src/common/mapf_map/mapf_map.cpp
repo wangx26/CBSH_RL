@@ -21,6 +21,10 @@ namespace mapf {
         //
     }
 
+    std::vector<int> Map::GetMap() const {
+        return map_;
+    }
+
     void Map::LoadFileMap(const std::string file_path) {
         std::string line;
         std::fstream f(file_path.c_str(), std::ios_base::in);
@@ -33,7 +37,7 @@ namespace mapf {
                 std::getline(f, line);
                 for(int j = 0; j < width_; ++j){
                     if(line[j] == '1' || line[j] == '@' || line[j] == 'T'){
-                        map_.push_back(1);
+                        map_.push_back(-1);
                     }
                     else{
                         map_.push_back(0);
@@ -48,7 +52,7 @@ namespace mapf {
         f.close();
     }
 
-    void Map::LoadAgentFile(const std::string file_path, std::vector<int> &starts, 
+    void Map::LoadAgentFile(const std::string file_path, std::vector<int> &starts,
         std::vector<int> &goals, int &agent_num) {
         std::ifstream fp(file_path.c_str());
         if(fp.is_open()) {
@@ -82,7 +86,7 @@ namespace mapf {
             return false;
         }
         else{
-            return map_[loc] == 1;
+            return map_[loc] == -1;
         }
     }
 
@@ -91,7 +95,7 @@ namespace mapf {
             return false;
         }
         else{
-            return map_[loc] == 1;
+            return map_[loc] == -1;
         }
     }
 
@@ -129,7 +133,7 @@ namespace mapf {
     std::vector<int> Map::RandGoal(int agent_num, int rand_seed) {
         std::vector<int> all_loc;
         for(int i = 0; i < width_ * height_; ++i){
-            if(map_[i] == 1){
+            if(map_[i] == -1){
                 all_loc.push_back(i);
             }
         }

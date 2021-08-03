@@ -85,10 +85,11 @@ namespace mapf {
         public:
             // RL
             void Reset();
-            bool Step(int a1, int a2, int t);
-            bool IsCons(int a1, int a2, int t);
+            void Step(int a, int t);
+            bool IsCons(int a, int t) const;
             CBSHNode::Ptr curr_node_;
             bool rl_done_;
+            std::vector<std::vector<int> > GetState() const;
 
         };
     }

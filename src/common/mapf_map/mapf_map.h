@@ -28,7 +28,7 @@ namespace mapf {
 
         void LoadFileMap(const std::string file_path);
 
-        void LoadAgentFile(const std::string file_path, std::vector<int> &starts, 
+        void LoadAgentFile(const std::string file_path, std::vector<int> &starts,
         std::vector<int> &goals, int &agent_num);
 
         bool IsBlocked(int x, int y) const ;
@@ -55,8 +55,10 @@ namespace mapf {
         std::vector<int> GetMoveOffset() const;
 
         int GetMapSize() const;
-        
+
         void SetOffset();
+
+        std::vector<int> GetMap() const;
     };
 }
 
