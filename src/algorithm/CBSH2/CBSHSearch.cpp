@@ -128,16 +128,18 @@ namespace mapf{
             return false;
         }
 
-        std::vector<std::vector<int> > CBSHSearch::GetState() const {
+        std::vector<int> CBSHSearch::GetState() const {
             auto map = map_->GetMap();
-            std::vector<std::vector<int> > res;
-            res.push_back(map);
+            std::vector<int> res = map;
             for (auto a: agent_ids_) {
+                auto state = map;
                 auto path = curr_node_->GetPaths().at(a).GetPaths();
                 for (int i = 0; i < path.size(); ++i) {
-                    //
+                    state[path[i].first] = i + 1;
                 }
+                res.insert(res.end(), state.begin(), state.end());
             }
+            return res;
         }
 
         bool CBSHSearch::MakePlan() {

@@ -77,6 +77,10 @@ int main(int argc, char** argv) {
 class CBSRL{
 private:
     mapf::CBSH::CBSHSearch::Ptr search_;
+    mapf::Map::Ptr map_;
+    int map_height_;
+    int map_width_;
+    int agent_num_;
 public:
     CBSRL(){}
 
@@ -84,24 +88,24 @@ public:
         CBSHConfig::Ptr cbsh_config;
         cbsh_config.reset(new CBSHConfig());
         // read map
-        mapf::Map::Ptr map;
-        map.reset(new mapf::Map());
+        map_.reset(new mapf::Map());
         std::string map_path = cbsh_config->GetMapPath();
-        map->LoadFileMap(map_path);
-        map->SetOffset();
+        map_->LoadFileMap(map_path);
+        map_->SetOffset();
+        map_height_ = map_->GetHeight();
+        map_width_ = map_->GetWidth();
         // read agents info
         std::vector<mapf::Agent::Ptr> agents;
-        int agent_num;
         std::vector<int> all_start, all_goal;
-        map->LoadAgentFile(cbsh_config->GetAgentPath(), all_start, all_goal, agent_num);
-        for(int i = 0; i < agent_num;  ++i) {
+        map_->LoadAgentFile(cbsh_config->GetAgentPath(), all_start, all_goal, agent_num_);
+        for(int i = 0; i < agent_num_;  ++i) {
             Agent::Ptr agent_each;
             agent_each.reset(new Agent(std::to_string(i)));
             agent_each->SetStart(all_start[i]);
             agent_each->SetGoal(all_goal[i]);
             agents.emplace_back(agent_each);
         }
-        search_.reset(new mapf::CBSH::CBSHSearch(map, agents, true));
+        search_.reset(new mapf::CBSH::CBSHSearch(map_, agents, true));
         printf("inited ok\n");
     }
 
@@ -125,8 +129,29 @@ public:
         return search_->curr_node_->GetCollisionNum();
     }
 
-    std::vector<std::vector<int> > GetState() {
-        //return search_->;
+    int* GetState() {
+        auto state = search_->GetState();
+        int len = (agent_num_ + 1) * map_height_ * map_width_;
+        int s[len];
+        int index = 0;
+        for (int k = 0; k <= agent_num_; ++k) {
+            for (int i = 0; i < map_height_; ++i) {
+                for (int j = 0; j < map_width_; ++j) {
+                    s[index] = state[index];
+                    ++index;
+                }
+            }
+        }
+        return s;
+    }
+    int GetMapHeight() {
+        return map_height_;
+    }
+    int GetMapWidth() {
+        return map_width_;
+    }
+    int GetAgentNum() {
+        return agent_num_;
     }
 };
 extern "C" {
@@ -135,7 +160,31 @@ extern "C" {
     void init(){
         rl.init();
     }
-    void print_msg(const char* s) {
-        std::cout<<s<<std::endl;
+    void Reset() {
+        rl.Reset();
+    }
+    void Step(int a, int t) {
+        rl.Step(a, t);
+    }
+    bool isDone() {
+        return rl.isDone();
+    }
+    int FinalReward() {
+        return rl.FinalReward();
+    }
+    int Reward() {
+        return rl.Reward();
+    }
+    void GetState(int *state) {
+        state = rl.GetState();
+    }
+    int GetMapHeight() {
+        return rl.GetMapHeight();
+    }
+    int GetMapWidth() {
+        return rl.GetMapWidth();
+    }
+    int GetAgentNum() {
+        return rl.GetAgentNum();
     }
 }

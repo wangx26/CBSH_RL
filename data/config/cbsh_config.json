@@ -2,8 +2,8 @@
     "strategy":"WDG",
     "focal":1.0,
     "rectangle_reasoning":false,
-	"map_path":"/home/wolf/CBSH_RL/data/lak503d.map",
-    "agent_path":"/home/wolf/CBSH_RL/data/lak503dmap-100agents-2.csv",
+	"map_path":"/home/wolf/CBSH_RL/data/test.map",
+    "agent_path":"/home/wolf/CBSH_RL/data/test.csv",
     "random_agent":{
         "agent_num":75,
         "random_agent_path":"/home/wolf/CBSH_RL/data/agents.csv",

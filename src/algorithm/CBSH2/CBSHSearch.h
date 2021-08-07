@@ -51,8 +51,8 @@ namespace mapf {
             // 对应level会使用低level所有方法
             CBSHSearch(const Map::ConstPtr &map, const std::vector<Agent::Ptr> &agents, bool block);
             CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids,
-                std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy,
-                bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block);
+                        std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy,
+                        bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block);
             ~CBSHSearch() = default;
 
             bool MakePlan();
@@ -63,7 +63,7 @@ namespace mapf {
             std::vector<Agent::Ptr> GetPlan();
 
             bool BuildChild(CBSHNode::Ptr &node, std::string cons_agent,
-            const std::map<std::pair<std::string, std::string>, int> &conflict_graph);
+                            const std::map<std::pair<std::string, std::string>, int> &conflict_graph);
             void UpdateFocalList();
         private:
             // 计算AStar的h函数，所有点到目标点的h函数，加速AStar计算
@@ -71,17 +71,18 @@ namespace mapf {
 
             // MDD使用
             void AddModifiedBarrierCons(std::vector<std::pair<int, bool> > path1,
-                std::vector<std::pair<int, bool> > path2, MDD::Ptr mdd1,
-                MDD::Ptr mdd2, int s1, int s2, std::pair<int, int> Rg, Constraint &cons1, Constraint &cons2);
+                                        std::vector<std::pair<int, bool> > path2, MDD::Ptr mdd1,
+                                        MDD::Ptr mdd2, int s1, int s2, std::pair<int, int> Rg, 
+                                        Constraint &cons1, Constraint &cons2);
             void AddModifiedBarrierConsH(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R,
-                int Rg_t, Constraint &cons);
+                                        int Rg_t, Constraint &cons);
             void AddModifiedBarrierConsV(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R,
-                int Rg_t, Constraint &cons);
+                                        int Rg_t, Constraint &cons);
 
             int ComputeHeuristics(CBSHNode::Ptr node);
             bool BuildDependenceGraph(CBSHNode::Ptr node);
             std::pair<int, bool> GetEdgeWeight(std::string agent1, std::string agent2, bool cardinal,
-            CBSHNode::Ptr node);
+                                               CBSHNode::Ptr node);
         public:
             // RL
             void Reset();
@@ -89,7 +90,7 @@ namespace mapf {
             bool IsCons(int a, int t) const;
             CBSHNode::Ptr curr_node_;
             bool rl_done_;
-            std::vector<std::vector<int> > GetState() const;
+            std::vector<int> GetState() const;
 
         };
     }
