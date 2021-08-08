@@ -18,7 +18,7 @@ namespace mapf {
         {
         private:
             std::vector<std::string> agent_ids_;
-            const mapf::Map::ConstPtr &map_;
+            mapf::Map *map_;
             std::string strategy_;  //默认使用PC，范围：NONE,CG,DG,WDG
             bool rectangle_reasoning_; // TODO:rectangle reasoning using MDDs
 
@@ -49,11 +49,12 @@ namespace mapf {
         public:
             typedef std::shared_ptr<CBSHSearch> Ptr;
             // 对应level会使用低level所有方法
-            CBSHSearch(const Map::ConstPtr &map, const std::vector<Agent::Ptr> &agents, bool block);
-            CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids,
+            CBSHSearch();
+            CBSHSearch(Map *map, const std::vector<Agent::Ptr> &agents, bool block);
+            CBSHSearch(Map *map, const std::vector<std::string> &agent_ids,
                         std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy,
                         bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block);
-            ~CBSHSearch() = default;
+            ~CBSHSearch();
 
             bool MakePlan();
             float solution_cost_;

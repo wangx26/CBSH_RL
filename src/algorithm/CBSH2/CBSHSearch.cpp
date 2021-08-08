@@ -2,16 +2,39 @@
 #include <queue>
 #include <unordered_set>
 #include <boost/unordered_set.hpp>
+#include <iostream>
 
 #include "CBSHSearch.h"
-#include "log.h"
+//#include "log.h"
 #include "LLNode.h"
-#include "cbsh_config.h"
+//#include "cbsh_config.h"
 
 namespace mapf{
     namespace CBSH {
-
-        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<Agent::Ptr> &agents, bool block)
+        CBSHSearch::CBSHSearch()
+            : HL_expend_num_(0), block_(false), solution_cost_(-2),
+              cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false) 
+        {
+            map_->LoadFileMap("/home/wolf/CBSH_RL/data/test.map");
+            map_->SetOffset();
+            //map_height_ = map_->GetHeight();
+            //map_width_ = map_->GetWidth();
+            std::vector<mapf::Agent> agents;
+            std::vector<int> all_start, all_goal;
+            int agent_num;
+            map_->LoadAgentFile("/home/wolf/CBSH_RL/data/test.csv", all_start, all_goal, agent_num);
+            for(int i = 0; i < agent_num;  ++i) {
+                mapf::Agent agent_each(std::to_string(i));
+                agent_each.SetStart(all_start[i]);
+                agent_each.SetGoal(all_goal[i]);
+                agents.emplace_back(agent_each);
+                std::cout << all_start[i] << ", " << all_goal[i] << std::endl;
+            }
+        }
+        CBSHSearch::~CBSHSearch() {
+            delete map_;
+        }
+        CBSHSearch::CBSHSearch(Map *map, const std::vector<Agent::Ptr> &agents, bool block)
             : map_(map), HL_expend_num_(0), block_(block), solution_cost_(-2),
               cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false)
         {
@@ -52,7 +75,7 @@ namespace mapf{
             std::chrono::microseconds::period::den;
         }
 
-        CBSHSearch::CBSHSearch(const Map::ConstPtr &map, const std::vector<std::string> &agent_ids,
+        CBSHSearch::CBSHSearch(Map *map, const std::vector<std::string> &agent_ids,
         std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy,
         bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block)
             : map_(map), strategy_(strategy), agent_ids_(agent_ids),

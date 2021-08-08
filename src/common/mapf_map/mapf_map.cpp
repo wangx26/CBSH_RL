@@ -2,9 +2,10 @@
 #include <fstream>
 #include <random>
 #include <algorithm>
+#include <sstream>
 
 #include "mapf_map.h"
-#include "log.h"
+//#include "../../log/log.h"
 
 namespace mapf {
 
@@ -49,6 +50,7 @@ namespace mapf {
             std::cout << "Open map fail :" << file_path.c_str() << std::endl;
             return;
         }
+        std::cout << "Read Map" << std::endl;
         f.close();
     }
 
@@ -75,7 +77,7 @@ namespace mapf {
             }
         }
         else{
-            LOG_ERROR_STREAM("Fail to open agent file");
+            //LOG_ERROR_STREAM("Fail to open agent file");
         }
         fp.close();
     }
