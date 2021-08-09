@@ -18,7 +18,7 @@ namespace mapf {
         {
         private:
             std::vector<std::string> agent_ids_;
-            mapf::Map *map_;
+            mapf::Map::Ptr map_;
             std::string strategy_;  //默认使用PC，范围：NONE,CG,DG,WDG
             bool rectangle_reasoning_; // TODO:rectangle reasoning using MDDs
 
@@ -50,11 +50,11 @@ namespace mapf {
             typedef std::shared_ptr<CBSHSearch> Ptr;
             // 对应level会使用低level所有方法
             CBSHSearch();
-            CBSHSearch(Map *map, const std::vector<Agent::Ptr> &agents, bool block);
-            CBSHSearch(Map *map, const std::vector<std::string> &agent_ids,
+            CBSHSearch(Map::Ptr map, const std::vector<Agent::Ptr> &agents, bool block);
+            CBSHSearch(Map::Ptr map, const std::vector<std::string> &agent_ids,
                         std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy,
                         bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block);
-            ~CBSHSearch();
+            ~CBSHSearch()=default;
 
             bool MakePlan();
             float solution_cost_;
@@ -73,7 +73,7 @@ namespace mapf {
             // MDD使用
             void AddModifiedBarrierCons(std::vector<std::pair<int, bool> > path1,
                                         std::vector<std::pair<int, bool> > path2, MDD::Ptr mdd1,
-                                        MDD::Ptr mdd2, int s1, int s2, std::pair<int, int> Rg, 
+                                        MDD::Ptr mdd2, int s1, int s2, std::pair<int, int> Rg,
                                         Constraint &cons1, Constraint &cons2);
             void AddModifiedBarrierConsH(MDD::Ptr mdd, std::pair<int, int> Rg, std::pair<int, int> R,
                                         int Rg_t, Constraint &cons);

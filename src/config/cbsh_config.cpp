@@ -2,7 +2,7 @@
 #include <fstream>
 
 #include "cbsh_config.h"
-#include "log.h"
+// #include "log.h"
 
 namespace mapf {
     CBSHConfig::CBSHConfig() {
@@ -42,14 +42,14 @@ namespace mapf {
                         random_seed_ = root["random_agent"]["random_seed"].asInt();
                     }
                 } else {
-                    LOG_ERROR_STREAM("CBSH config parse error.");
+                    // LOG_ERROR_STREAM("CBSH config parse error.");
                 }
             } else {
-                LOG_ERROR_STREAM("CBSH config file open error.");
+                // LOG_ERROR_STREAM("CBSH config file open error.");
             }
         }
         catch (...) {
-            LOG_ERROR_STREAM("CBSH config load catch error.");
+            // LOG_ERROR_STREAM("CBSH config load catch error.");
         }
     }
 }

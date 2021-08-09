@@ -19,7 +19,7 @@ cdef class PyCbsrl:
 cdef class PyCBSSearch:
     cdef CBSHSearch*cbs_search
 
-    def __c_init__(self, )
+    def __c_init__(self):
         self.cbs_search = new CBSHSearch()
     def __dealloc__(self):
         del self.cbs_search

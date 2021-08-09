@@ -1,16 +1,16 @@
 #include <chrono>
 
 #include "CBSHNode.h"
-#include "log.h"
+// #include "log.h"
 
 namespace mapf {
     namespace CBSH {
 
         CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, const std::vector<int> &starts,
-                const std::vector<int> &goals, std::string strategy, 
+                const std::vector<int> &goals, std::string strategy,
                 const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<MDDTable, MDD::Ptr> &mddtable, 
-                std::unordered_map<std::string, std::vector<int> > &astar_h, 
+                std::map<MDDTable, MDD::Ptr> &mddtable,
+                std::unordered_map<std::string, std::vector<int> > &astar_h,
                 const bool &block)
                 : makespan_(0), total_cost_(0), node_g_cost_(0), node_h_cost_(0),
                   agent_ids_(agent_ids), strategy_(strategy),
@@ -34,11 +34,11 @@ namespace mapf {
             FindConflictRoot();
         }
 
-        CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, std::string strategy, 
+        CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, std::string strategy,
                 const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<MDDTable, MDD::Ptr> &mddtable, 
-                std::unordered_map<std::string, std::vector<int> > &astar_h, 
-                const bool &block, std::map<std::string, CBSHPath> init_paths, 
+                std::map<MDDTable, MDD::Ptr> &mddtable,
+                std::unordered_map<std::string, std::vector<int> > &astar_h,
+                const bool &block, std::map<std::string, CBSHPath> init_paths,
                 int init_h)
                 : makespan_(0), total_cost_(0), node_g_cost_(0), node_h_cost_(init_h),
                   agent_ids_(agent_ids), strategy_(strategy),
@@ -58,11 +58,11 @@ namespace mapf {
         }
 
         CBSHNode::CBSHNode(CBSHNode::Ptr &node, std::string cons_agent)
-            : makespan_(node->makespan_), 
+            : makespan_(node->makespan_),
               total_cost_(node->total_cost_), node_g_cost_(node->node_g_cost_), node_h_cost_(node->node_h_cost_), // cost复制父节点
               agent_ids_(node->agent_ids_), paths_(node->paths_),
               num_of_collisions_(node->num_of_collisions_), conflict_graph_(node->conflict_graph_),
-              strategy_(node->strategy_), 
+              strategy_(node->strategy_),
               rectangle_reasoning_(node->rectangle_reasoning_),
               map_(node->map_), parent_h_cost_(node->node_h_cost_),
               mddtable_(node->mddtable_),
@@ -134,7 +134,7 @@ namespace mapf {
                     }
                 }
             }
-            num_of_collisions_ = unknown_conf_.size() + cardinal_conf_.size() + rectSemi_conf_.size() + 
+            num_of_collisions_ = unknown_conf_.size() + cardinal_conf_.size() + rectSemi_conf_.size() +
                 semi_conf_.size() + rectNon_conf_.size() + non_conf_.size();
         }
 
@@ -164,7 +164,7 @@ namespace mapf {
                         Conflict conf(agent_id, a, "vertex", loc1, -1, timestep);
                         unknown_conf_.push_back(conf);
                     }
-                    else if (timestep < min_len - 1 && loc1 == paths_.at(a).GetLoc(timestep + 1) 
+                    else if (timestep < min_len - 1 && loc1 == paths_.at(a).GetLoc(timestep + 1)
                     && loc2 == paths_.at(agent_id).GetLoc(timestep + 1)) {
                         Conflict conf(agent_id, a, "edge", loc1, loc2, timestep + 1);
                         unknown_conf_.push_back(conf);
@@ -190,7 +190,7 @@ namespace mapf {
                     }
                 }
             }
-            num_of_collisions_ = unknown_conf_.size() + cardinal_conf_.size() + rectSemi_conf_.size() + 
+            num_of_collisions_ = unknown_conf_.size() + cardinal_conf_.size() + rectSemi_conf_.size() +
                 semi_conf_.size() + rectNon_conf_.size() + non_conf_.size();
         }
 
@@ -249,10 +249,10 @@ namespace mapf {
                     all_LL_node_table_.clear();
                     auto ll_e = std::chrono::system_clock::now();
                     auto ll_d = std::chrono::duration_cast<std::chrono::microseconds>(ll_e - ll_s);
-                    auto ll_t = double(ll_d.count()) * 
+                    auto ll_t = double(ll_d.count()) *
                     std::chrono::microseconds::period::num / std::chrono::microseconds::period::den;
-                    LOG_DEBUG_STREAM("Finish low level plan, time: " << double(ll_d.count()) * 
-                    std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
+                    // LOG_DEBUG_STREAM("Finish low level plan, time: " << double(ll_d.count()) *
+                    //                  std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
 
                     return true;
                 }
@@ -266,7 +266,7 @@ namespace mapf {
                             continue;
                         }
                     }
-                    if(map_->ValidMove(curr_loc, next_loc) && 
+                    if(map_->ValidMove(curr_loc, next_loc) &&
                     !paths_.at(agent_id).IsConstrainted(curr_loc, next_loc, next_timestep)) {
                         // 计算该步代价
                         int next_g_cost = curr_node->GetGCost() + 1;
@@ -413,9 +413,9 @@ namespace mapf {
                     }
                     continue;
                 }
-                else if (rectangle_reasoning_ && conf.Type() == "vertex" && 
+                else if (rectangle_reasoning_ && conf.Type() == "vertex" &&
                     paths_.at(agent_id1).Size() > timestep &&
-                    paths_.at(agent_id2).Size() > timestep) {  // conflict在两agent抵达目标点之前发生 
+                    paths_.at(agent_id2).Size() > timestep) {  // conflict在两agent抵达目标点之前发生
                     //Rectangle reasoning for semi and non cardinal vertex conflicts
                     std::list<int> starts1 = GetStartCandidates(agent_id1, timestep);
                     std::list<int> goals1 = GetGoalCandidates(agent_id1, timestep);
@@ -513,7 +513,7 @@ namespace mapf {
         }
 
         bool CBSHNode::IsManhattanOptimal(int loc1, int loc2, int dt) {
-            int manhattan = abs(loc1 / map_->GetWidth() - loc2 / map_->GetWidth()) + 
+            int manhattan = abs(loc1 / map_->GetWidth() - loc2 / map_->GetWidth()) +
             abs(loc1 % map_->GetWidth() - loc2 % map_->GetWidth());
             return manhattan == dt;
         }
@@ -529,19 +529,19 @@ namespace mapf {
             std::pair<int, int> g1 = map_->ToYX(goal_loc1);
             std::pair<int, int> s2 = map_->ToYX(start_loc2);
             std::pair<int, int> g2 = map_->ToYX(goal_loc2);
-            if((s1.first - g1.first) * (s2.first - g2.first) < 0 || 
+            if((s1.first - g1.first) * (s2.first - g2.first) < 0 ||
             (s1.second - g1.second) * (s2.second - g2.second) < 0 ) { // 方向不同
                 return false;
             }
-            else if ((s2.first - s1.first) * (s1.first - g1.first) < 0 && 
+            else if ((s2.first - s1.first) * (s1.first - g1.first) < 0 &&
             (s2.second - s1.second) * (s1.second - g1.second) < 0 ) { // s1在中间
                 return false;
             }
-            else if ((s1.first - s2.first) * (s2.first - g2.first) < 0 && 
+            else if ((s1.first - s2.first) * (s2.first - g2.first) < 0 &&
             (s1.second - s2.second) * (s2.second - g2.second) < 0 ) { // s2在中间
                 return false;
             }
-            else if ((s1.first == g1.first && s2.second == g2.second) || 
+            else if ((s1.first == g1.first && s2.second == g2.second) ||
             (s1.second == g1.second && s2.first == g2.first)) { // area=1
                 return false;
             }
@@ -607,7 +607,7 @@ namespace mapf {
         // return 2: cardinal rectangle conflict
         // return 1: semi-cardinal rectangle conflict
         // return 0: non-cardinal rectangle conflict
-        int CBSHNode::ClassifyRectangleConflict(int start_loc1, int start_loc2, int goal_loc1, 
+        int CBSHNode::ClassifyRectangleConflict(int start_loc1, int start_loc2, int goal_loc1,
                 int goal_loc2, std::pair<int, int> Rg) {
             std::pair<int, int> s1 = map_->ToYX(start_loc1);
             std::pair<int, int> g1 = map_->ToYX(goal_loc1);
@@ -681,9 +681,9 @@ namespace mapf {
                 bool keep = true;
                 while(iter_behind != conflicts.end()) {
                     // 只有在冲突双方一致时，进行比较，时间短的保留
-                    if((agent_id1 == iter_behind->GetAgent(0) && agent_id2 == iter_behind->GetAgent(1)) || 
+                    if((agent_id1 == iter_behind->GetAgent(0) && agent_id2 == iter_behind->GetAgent(1)) ||
                     agent_id1 == iter_behind->GetAgent(1) && agent_id2 == iter_behind->GetAgent(0)) {
-                        if(std::max(iter->GetTimestep(), iter_behind->GetTimestep()) >= 
+                        if(std::max(iter->GetTimestep(), iter_behind->GetTimestep()) >=
                         std::min(paths_.at(agent_id1).Size(), paths_.at(agent_id2).Size())) {
                             keep = iter->GetTimestep() <= iter_behind->GetTimestep();
                         }
@@ -833,8 +833,8 @@ namespace mapf {
             return result;
         }
 
-        int CBSHNode::WeightedVertexCorver(std::vector<int> &x, int i, int sum, 
-            std::map<std::pair<std::string, std::string>, int> &conf_graph, 
+        int CBSHNode::WeightedVertexCorver(std::vector<int> &x, int i, int sum,
+            std::map<std::pair<std::string, std::string>, int> &conf_graph,
             std::vector<int> range, int &best_so_far) const {
             if(sum >= best_so_far) {
                 return std::numeric_limits<int>::max();
@@ -881,7 +881,7 @@ namespace mapf {
         }
 
         // DG使用的最小顶点覆盖评价函数
-        int CBSHNode::MinimumVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph, 
+        int CBSHNode::MinimumVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph,
                 int edge_num) const {
             if(edge_num < 2) {
                 return edge_num;
@@ -917,9 +917,9 @@ namespace mapf {
                     return parent_h_cost_ + 1;
                 }
             }
-        } 
+        }
 
-        bool CBSHNode::KVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph, 
+        bool CBSHNode::KVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph,
                 int node_num, int edge_num, int k) const {
             // 如果边过少，或者边过多，不需要递归
             if(edge_num == 0) {
@@ -1242,7 +1242,7 @@ namespace mapf {
         }
 
         void CBSHNode::CBSHNodeLog() const {
-            LOG_DEBUG_STREAM("CBSHNode log.");
+            // LOG_DEBUG_STREAM("CBSHNode log.");
         }
 
         std::list<Conflict> CBSHNode::GetConflicts() const {

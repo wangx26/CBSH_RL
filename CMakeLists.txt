@@ -33,20 +33,20 @@ find_package(Boost REQUIRED COMPONENTS
         program_options
         )
 
-find_package(LOG4CPP REQUIRED)
+#find_package(LOG4CPP REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 #pkg_check_modules(DPKG_DEV REQUIRED libdpkg)
 #pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 
-include_directories(${LOG4CPP_INCLUDE_DIR})
+#include_directories(${LOG4CPP_INCLUDE_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_library(${PROJECT_NAME} SHARED src/main.cpp )
 
 target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
-        ${LOG4CPP_LIBRARIES}
+        #${LOG4CPP_LIBRARIES}
         ${OpenCV_LIBS}
         jsoncpp
         -fPIC

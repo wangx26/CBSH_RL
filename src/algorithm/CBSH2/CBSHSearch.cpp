@@ -7,34 +7,46 @@
 #include "CBSHSearch.h"
 //#include "log.h"
 #include "LLNode.h"
-//#include "cbsh_config.h"
+#include "cbsh_config.h"
 
 namespace mapf{
     namespace CBSH {
         CBSHSearch::CBSHSearch()
             : HL_expend_num_(0), block_(false), solution_cost_(-2),
-              cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false) 
+              cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false)
         {
             map_->LoadFileMap("/home/wolf/CBSH_RL/data/test.map");
             map_->SetOffset();
-            //map_height_ = map_->GetHeight();
-            //map_width_ = map_->GetWidth();
-            std::vector<mapf::Agent> agents;
-            std::vector<int> all_start, all_goal;
+            std::vector<int> starts, goals;
             int agent_num;
-            map_->LoadAgentFile("/home/wolf/CBSH_RL/data/test.csv", all_start, all_goal, agent_num);
+            map_->LoadAgentFile("/home/wolf/CBSH_RL/data/test.csv", starts, goals, agent_num);
             for(int i = 0; i < agent_num;  ++i) {
-                mapf::Agent agent_each(std::to_string(i));
-                agent_each.SetStart(all_start[i]);
-                agent_each.SetGoal(all_goal[i]);
-                agents.emplace_back(agent_each);
-                std::cout << all_start[i] << ", " << all_goal[i] << std::endl;
+                agent_ids_.push_back(std::to_string(i));
             }
+            for(int i = 0; i < agent_num; ++i) {
+                ComputeH(goals[i], std::to_string(i));
+            }
+
+            CBSHConfig::Ptr cbsh_config;
+            cbsh_config.reset(new CBSHConfig());
+            strategy_ = cbsh_config->GetStrategy();
+            focal_w_ = cbsh_config->GetFocal();
+            rectangle_reasoning_ = cbsh_config->GetRectangle();
+
+            open_list_.clear();
+            focal_list_.clear();
+
+            // 规划根节点
+            // 构造根节点时进行初始规划、识别冲突
+            root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_, rectangle_reasoning_,
+                map_, mddtable_, astar_h_, block_));
+
+            root_->open_handle_ = open_list_.push(root_);
+            root_->focal_handle_ = focal_list_.push(root_);
+            min_f_cost_ = root_->GetTotalCost();
+            focal_list_threshold_ = min_f_cost_ * focal_w_;
         }
-        CBSHSearch::~CBSHSearch() {
-            delete map_;
-        }
-        CBSHSearch::CBSHSearch(Map *map, const std::vector<Agent::Ptr> &agents, bool block)
+        CBSHSearch::CBSHSearch(Map::Ptr map, const std::vector<Agent::Ptr> &agents, bool block)
             : map_(map), HL_expend_num_(0), block_(block), solution_cost_(-2),
               cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false)
         {
@@ -69,13 +81,13 @@ namespace mapf{
             min_f_cost_ = root_->GetTotalCost();
             focal_list_threshold_ = min_f_cost_ * focal_w_;
 
-            LOG_DEBUG_STREAM("High level build root.");
+            //LOG_DEBUG_STREAM("High level build root.");
             auto mp_root_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_ch_e - root_s);
             compute_astarh_time_ = double(mp_root_d.count()) * std::chrono::microseconds::period::num /
             std::chrono::microseconds::period::den;
         }
 
-        CBSHSearch::CBSHSearch(Map *map, const std::vector<std::string> &agent_ids,
+        CBSHSearch::CBSHSearch(Map::Ptr map, const std::vector<std::string> &agent_ids,
         std::map<std::string, CBSHPath> init_paths, double f_w, int init_h, std::string strategy,
         bool rectangle_reasoning, int cost_upperbound, double time_limit, bool block)
             : map_(map), strategy_(strategy), agent_ids_(agent_ids),
@@ -104,7 +116,7 @@ namespace mapf{
         }
 
         void CBSHSearch::Reset() {
-            LOG_DEBUG_STREAM("Reset state");
+            //LOG_DEBUG_STREAM("Reset state");
             open_list_.clear();
             focal_list_.clear();
             curr_node_ = root_;
@@ -122,13 +134,13 @@ namespace mapf{
             CBSHNode::Ptr next;
 
             next.reset(new CBSHNode(curr_node_, conf_agent));
-            LOG_DEBUG_STREAM("Conflict loc1: " << loc << "; timestep: " << t);
+            //LOG_DEBUG_STREAM("Conflict loc1: " << loc << "; timestep: " << t);
             Constraint cons(conf_agent, "vertex");
             cons.SetConstraint(loc, -1, t);
             next->AddConstraint(conf_agent, cons);
 
             BuildChild(next, conf_agent, curr_node_->GetConflictGraph());
-            LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent);
+            //LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent);
             UpdateFocalList();
 
             curr_node_ = focal_list_.top();
@@ -182,12 +194,12 @@ namespace mapf{
                     RecordPlan(current_node);
                     auto mp_e = std::chrono::system_clock::now();
                     auto mp_d = std::chrono::duration_cast<std::chrono::microseconds>(mp_e - mp_s);
-                    LOG_DEBUG_STREAM("Finish make plan, time: " << double(mp_d.count()) *
-                    std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
-                    LOG_DEBUG_STREAM("Generate High Level nodes: " << HL_expend_num_);
-                    LOG_DEBUG_STREAM("High level root, time: " << compute_astarh_time_);
-                    LOG_DEBUG_STREAM("G cost: " << current_node->GetGCost());
-                    LOG_DEBUG_STREAM("Makespan: " << current_node->GetMakespan());
+                    //LOG_DEBUG_STREAM("Finish make plan, time: " << double(mp_d.count()) *
+                    //                  std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
+                    //LOG_DEBUG_STREAM("Generate High Level nodes: " << HL_expend_num_);
+                    //LOG_DEBUG_STREAM("High level root, time: " << compute_astarh_time_);
+                    //LOG_DEBUG_STREAM("G cost: " << current_node->GetGCost());
+                    //LOG_DEBUG_STREAM("Makespan: " << current_node->GetMakespan());
                     return true;
                 }
                 else if(strategy_ == "NONE") {
@@ -220,7 +232,7 @@ namespace mapf{
 
                 // 生成限制
                 Conflict curr_conf = current_node->GetLastestConflict();
-                LOG_DEBUG_STREAM("Conflict type: " << curr_conf.Type());
+                //LOG_DEBUG_STREAM("Conflict type: " << curr_conf.Type());
                 std::string conf_agent1 = curr_conf.GetAgent(0);
                 std::string conf_agent2 = curr_conf.GetAgent(1);
                 left.reset(new CBSHNode(current_node, conf_agent1));
@@ -231,8 +243,8 @@ namespace mapf{
                     std::pair<int, int> Rg = curr_conf.GetRg();
                     int s1_time = curr_conf.GetRectTime(0);
                     int s2_time = curr_conf.GetRectTime(1);
-                    LOG_DEBUG_STREAM("Rectangle conflict Rg: " << Rg.first << ", " << Rg.second << "; s1 time: " <<
-                    s1_time << "; s2 time: " << s2_time);
+                    //LOG_DEBUG_STREAM("Rectangle conflict Rg: " << Rg.first << ", " << Rg.second << "; s1 time: " <<
+                    //                  s1_time << "; s2 time: " << s2_time);
                     MDD::Ptr mdd1 = current_node->BuildMDD(conf_agent1);
                     MDD::Ptr mdd2 = current_node->BuildMDD(conf_agent2);
                     AddModifiedBarrierCons(current_node->GetPath(conf_agent1).GetPaths(),
@@ -241,7 +253,7 @@ namespace mapf{
                     right->AddConstraint(conf_agent2, cons2);
                 }
                 else if(curr_conf.Type() == "vertex"){
-                    LOG_DEBUG_STREAM("Vertex conflict loc: " << curr_conf.GetLoc(0) << "; timestep: " << curr_conf.GetTimestep());
+                    //LOG_DEBUG_STREAM("Vertex conflict loc: " << curr_conf.GetLoc(0) << "; timestep: " << curr_conf.GetTimestep());
                     Constraint cons1(conf_agent1, "vertex");
                     Constraint cons2(conf_agent2, "vertex");
                     cons1.SetConstraint(curr_conf.GetLoc(0), -1, curr_conf.GetTimestep());
@@ -250,8 +262,8 @@ namespace mapf{
                     right->AddConstraint(conf_agent2, cons2);
                 }
                 else {
-                    LOG_DEBUG_STREAM("Edge conflict loc1: " << curr_conf.GetLoc(0) << "; loc2: " << curr_conf.GetLoc(1) <<
-                    "; timestep: " << curr_conf.GetTimestep());
+                    //LOG_DEBUG_STREAM("Edge conflict loc1: " << curr_conf.GetLoc(0) << "; loc2: " << curr_conf.GetLoc(1) <<
+                    //                  "; timestep: " << curr_conf.GetTimestep());
                     Constraint cons1(conf_agent1, "edge");
                     Constraint cons2(conf_agent2, "edge");
                     cons1.SetConstraint(curr_conf.GetLoc(0), curr_conf.GetLoc(1), curr_conf.GetTimestep());
@@ -261,9 +273,9 @@ namespace mapf{
                 }
 
                 BuildChild(left, conf_agent1, current_node->GetConflictGraph());
-                LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent1);
+                //LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent1);
                 BuildChild(right, conf_agent2, current_node->GetConflictGraph());
-                LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent2);
+                //LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent2);
 
                 UpdateFocalList();
             } // end of while loop
@@ -300,8 +312,8 @@ namespace mapf{
             }
             auto bc_e = std::chrono::system_clock::now();
             auto bc_d = std::chrono::duration_cast<std::chrono::microseconds>(bc_e - bc_s);
-            LOG_DEBUG_STREAM("Finish build child, time: " << double(bc_d.count()) *
-            std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
+            //LOG_DEBUG_STREAM("Finish build child, time: " << double(bc_d.count()) *
+            //                  std::chrono::microseconds::period::num / std::chrono::microseconds::period::den);
             return true;
         }
 
@@ -315,11 +327,11 @@ namespace mapf{
                 a->SetPaths(path.second.GetPaths());
                 plan_result_.push_back(a);
 
-                LOG_DEBUG_STREAM("Agent id: " << path.first);
+                //LOG_DEBUG_STREAM("Agent id: " << path.first);
                 for(auto loc: path.second.GetPaths()) {
                     std::pair<int, int> l;
                     l = map_->ToXY(loc.first);
-                    LOG_DEBUG_STREAM(l.first << ", " << l.second);
+                    //LOG_DEBUG_STREAM(l.first << ", " << l.second);
                 }
             }
         }

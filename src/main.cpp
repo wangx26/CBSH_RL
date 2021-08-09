@@ -1,10 +1,13 @@
 #include <iostream>
 //#include <fstream>
 //#include <chrono>
+#include <pybind11/pybind11.h>
 
 #include "common/mapf_map/mapf_map.h"
 #include "common/agent/agent.h"
 //#include "algorithm/CBSH2/CBSHSearch.h"
+
+namespace py = pybind11;
 
 class CBSRL{
 private:
@@ -33,7 +36,7 @@ public:
     }
 
     int init(){
-        
+
         printf("inited ok\n");
         return 0;
     }
@@ -47,6 +50,7 @@ public:
     }
     bool isDone() {
         //return search_->rl_done_;
+        printf("isDone\n");
         return true;
     }
     int FinalReward() {
@@ -82,3 +86,10 @@ public:
         return agent_num_;
     }
 };
+
+PYBIND11_MODULE(cbsrl, m) {
+    py::class_<CBSRL>(m, "CBSHRL")
+        .def(py::init<>())
+        .def("isdone", &CBSRL::isDone)
+        .def("get map height", &CBSRL::GetMapHeight);
+}
