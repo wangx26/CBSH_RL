@@ -1,4 +1,7 @@
 import cbsrl
 
 a = cbsrl.CBSHRL()
-print(a.get_maph())
+print(a.getstate())
+a.isdone()
+a.step(0, 3)
+print(a.getstate())

@@ -13,6 +13,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/cbsrl.dir/src/common/mapf_map/mapf_map.cpp.o"
   "CMakeFiles/cbsrl.dir/src/config/cbsh_config.cpp.o"
   "CMakeFiles/cbsrl.dir/src/visualization/show.cpp.o"
+  "CMakeFiles/cbsrl.dir/src/log/log.cpp.o"
   "cbsrl.pdb"
   "cbsrl.so"
 )

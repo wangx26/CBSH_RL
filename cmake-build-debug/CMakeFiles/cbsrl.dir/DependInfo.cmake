@@ -16,6 +16,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/ld/CBSH_RL/src/common/agent/agent.cpp" "/home/ld/CBSH_RL/cmake-build-debug/CMakeFiles/cbsrl.dir/src/common/agent/agent.cpp.o"
   "/home/ld/CBSH_RL/src/common/mapf_map/mapf_map.cpp" "/home/ld/CBSH_RL/cmake-build-debug/CMakeFiles/cbsrl.dir/src/common/mapf_map/mapf_map.cpp.o"
   "/home/ld/CBSH_RL/src/config/cbsh_config.cpp" "/home/ld/CBSH_RL/cmake-build-debug/CMakeFiles/cbsrl.dir/src/config/cbsh_config.cpp.o"
+  "/home/ld/CBSH_RL/src/log/log.cpp" "/home/ld/CBSH_RL/cmake-build-debug/CMakeFiles/cbsrl.dir/src/log/log.cpp.o"
   "/home/ld/CBSH_RL/src/main.cpp" "/home/ld/CBSH_RL/cmake-build-debug/CMakeFiles/cbsrl.dir/src/main.cpp.o"
   "/home/ld/CBSH_RL/src/visualization/show.cpp" "/home/ld/CBSH_RL/cmake-build-debug/CMakeFiles/cbsrl.dir/src/visualization/show.cpp.o"
   )
@@ -33,6 +34,7 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
   ".././src/visualization"
   ".././src/log"
   ".././src/config"
+  "/usr/local/include/log4cpp"
   "/opt/ros/kinetic/include/opencv-3.3.1-dev"
   "/opt/ros/kinetic/include/opencv-3.3.1-dev/opencv"
   "/usr/include/python2.7"

@@ -8,7 +8,7 @@ namespace mapf {
 
         CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, const std::vector<int> &starts,
                 const std::vector<int> &goals, std::string strategy,
-                const bool &rectangle_reasoning, const Map::ConstPtr &map,
+                const bool &rectangle_reasoning, Map::Ptr &map,
                 std::map<MDDTable, MDD::Ptr> &mddtable,
                 std::unordered_map<std::string, std::vector<int> > &astar_h,
                 const bool &block)
@@ -35,7 +35,7 @@ namespace mapf {
         }
 
         CBSHNode::CBSHNode(const std::vector<std::string> &agent_ids, std::string strategy,
-                const bool &rectangle_reasoning, const Map::ConstPtr &map,
+                const bool &rectangle_reasoning, Map::Ptr &map,
                 std::map<MDDTable, MDD::Ptr> &mddtable,
                 std::unordered_map<std::string, std::vector<int> > &astar_h,
                 const bool &block, std::map<std::string, CBSHPath> init_paths,
@@ -118,11 +118,6 @@ namespace mapf {
                     if(paths_.at(a1).Size() != paths_.at(a2).Size()) {
                         std::string a1_ = paths_.at(a1).Size() < paths_.at(a2).Size() ? a1 : a2;
                         std::string a2_ = paths_.at(a1).Size() < paths_.at(a2).Size() ? a2 : a1;
-                        if((a1_ == "85" && a2_ == "99") || (a1_ == "99" && a2_ == "85")) {
-                            int pathsize1_d = paths_.at(a1_).Size();
-                            int pathsize2_d = paths_.at(a2_).Size();
-                            int temp =1;
-                        }
                         int loc1 = paths_.at(a1_).GetLastLoc();
                         for(int t = min_len; t < paths_.at(a2_).Size(); ++t) {
                             int loc2 = paths_.at(a2_).GetLoc(t);
@@ -265,6 +260,9 @@ namespace mapf {
                         if(!(!map_->IsBlocked(next_loc) || next_loc == goal_loc)) {
                             continue;
                         }
+                    }
+                    if (next_timestep == 3) {
+                        int debug = 1;
                     }
                     if(map_->ValidMove(curr_loc, next_loc) &&
                     !paths_.at(agent_id).IsConstrainted(curr_loc, next_loc, next_timestep)) {

@@ -26,7 +26,7 @@ namespace mapf {
             const std::vector<std::string> &agent_ids_;
             std::string strategy_;
             const bool &rectangle_reasoning_;
-            const Map::ConstPtr &map_;
+            Map::Ptr &map_;
             const std::unordered_map<std::string, std::vector<int> > &astar_h_;
             std::list<Conflict> conflicts_;     // 所有选定扩展的冲突，最后为本次使用
             std::string constraint_agent_;
@@ -64,16 +64,16 @@ namespace mapf {
             std::map<std::string, CBSHPath> paths_;    // 所有路径
 
             CBSHNode(const std::vector<std::string> &agent_ids, const std::vector<int> &starts,
-                const std::vector<int> &goals, std::string strategy, 
-                const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<MDDTable, MDD::Ptr> &mddtable, 
-                std::unordered_map<std::string, std::vector<int> > &astar_h, 
+                const std::vector<int> &goals, std::string strategy,
+                const bool &rectangle_reasoning, Map::Ptr &map,
+                std::map<MDDTable, MDD::Ptr> &mddtable,
+                std::unordered_map<std::string, std::vector<int> > &astar_h,
                 const bool &block);
-            CBSHNode(const std::vector<std::string> &agent_ids, std::string strategy, 
-                const bool &rectangle_reasoning, const Map::ConstPtr &map,
-                std::map<MDDTable, MDD::Ptr> &mddtable, 
-                std::unordered_map<std::string, std::vector<int> > &astar_h, 
-                const bool &block, std::map<std::string, CBSHPath> init_paths, 
+            CBSHNode(const std::vector<std::string> &agent_ids, std::string strategy,
+                const bool &rectangle_reasoning, Map::Ptr &map,
+                std::map<MDDTable, MDD::Ptr> &mddtable,
+                std::unordered_map<std::string, std::vector<int> > &astar_h,
+                const bool &block, std::map<std::string, CBSHPath> init_paths,
                 int init_h);
             CBSHNode(CBSHNode::Ptr &node, std::string cons_agent);
             ~CBSHNode()=default;
@@ -116,7 +116,7 @@ namespace mapf {
             std::map<std::pair<std::string, std::string>, int> GetConflictGraph() const;
 
             void ClassifyConflicts();
-            
+
             void ChooseConflict();
 
             void EstimateH(std::string agent_id, const std::map<std::pair<std::string, std::string>, int> &conflict_graph);
@@ -149,7 +149,7 @@ namespace mapf {
             // CBSH-RM
             std::pair<int, int> GetRg(int start_loc1, int goal_loc1, int goal_loc2);
             std::pair<int, int> GetRs(int start_loc1, int start_loc2, int goal_loc1);
-            int ClassifyRectangleConflict(int start_loc1, int start_loc2, int goal_loc1, 
+            int ClassifyRectangleConflict(int start_loc1, int start_loc2, int goal_loc1,
                 int goal_loc2, std::pair<int, int> Rg);
             bool FindRectangleConflict(const Conflict &conf) const ;
             void RemoveLowPriorityConflict(std::list<Conflict> & conflicts);
@@ -159,16 +159,16 @@ namespace mapf {
 
         public:
             // DG,WDG
-            
+
             int WeightedVertexCorver(const std::map<std::pair<std::string, std::string>, int> &conf_graph) const;
-            int WeightedVertexCorver(std::vector<int> &x, int i, int sum, 
-            std::map<std::pair<std::string, std::string>, int> &conf_graph, 
+            int WeightedVertexCorver(std::vector<int> &x, int i, int sum,
+            std::map<std::pair<std::string, std::string>, int> &conf_graph,
             std::vector<int> range, int &best_so_far) const;
-            int MinimumVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph, 
+            int MinimumVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph,
                 int edge_num) const;
             // 是否存在k-vertex covers solution,每个点连接的边不大于k
             // 递归求解
-            bool KVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph, 
+            bool KVertexCover(const std::map<std::pair<std::string, std::string>, int> &conf_graph,
                 int node_num, int edge_num, int k) const;
 
             // 底层规划

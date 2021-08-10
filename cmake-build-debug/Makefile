@@ -447,6 +447,33 @@ src/config/cbsh_config.cpp.s:
 	$(MAKE) -f CMakeFiles/cbsrl.dir/build.make CMakeFiles/cbsrl.dir/src/config/cbsh_config.cpp.s
 .PHONY : src/config/cbsh_config.cpp.s
 
+src/log/log.o: src/log/log.cpp.o
+
+.PHONY : src/log/log.o
+
+# target to build an object file
+src/log/log.cpp.o:
+	$(MAKE) -f CMakeFiles/cbsrl.dir/build.make CMakeFiles/cbsrl.dir/src/log/log.cpp.o
+.PHONY : src/log/log.cpp.o
+
+src/log/log.i: src/log/log.cpp.i
+
+.PHONY : src/log/log.i
+
+# target to preprocess a source file
+src/log/log.cpp.i:
+	$(MAKE) -f CMakeFiles/cbsrl.dir/build.make CMakeFiles/cbsrl.dir/src/log/log.cpp.i
+.PHONY : src/log/log.cpp.i
+
+src/log/log.s: src/log/log.cpp.s
+
+.PHONY : src/log/log.s
+
+# target to generate assembly for a file
+src/log/log.cpp.s:
+	$(MAKE) -f CMakeFiles/cbsrl.dir/build.make CMakeFiles/cbsrl.dir/src/log/log.cpp.s
+.PHONY : src/log/log.cpp.s
+
 src/main.o: src/main.cpp.o
 
 .PHONY : src/main.o
@@ -546,6 +573,9 @@ help:
 	@echo "... src/config/cbsh_config.o"
 	@echo "... src/config/cbsh_config.i"
 	@echo "... src/config/cbsh_config.s"
+	@echo "... src/log/log.o"
+	@echo "... src/log/log.i"
+	@echo "... src/log/log.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"

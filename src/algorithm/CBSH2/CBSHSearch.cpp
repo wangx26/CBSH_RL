@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "CBSHSearch.h"
-//#include "log.h"
+#include "log.h"
 #include "LLNode.h"
 #include "cbsh_config.h"
 
@@ -15,18 +15,18 @@ namespace mapf{
             : HL_expend_num_(0), block_(false), solution_cost_(-2),
               cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false)
         {
-            map_->LoadFileMap("/home/wolf/CBSH_RL/data/test.map");
+            map_.reset(new Map());
+            map_->LoadFileMap("/home/ld/CBSH_RL/data/test.map");
             map_->SetOffset();
             std::vector<int> starts, goals;
             int agent_num;
-            map_->LoadAgentFile("/home/wolf/CBSH_RL/data/test.csv", starts, goals, agent_num);
+            map_->LoadAgentFile("/home/ld/CBSH_RL/data/test.csv", starts, goals, agent_num);
             for(int i = 0; i < agent_num;  ++i) {
                 agent_ids_.push_back(std::to_string(i));
             }
             for(int i = 0; i < agent_num; ++i) {
                 ComputeH(goals[i], std::to_string(i));
             }
-
             CBSHConfig::Ptr cbsh_config;
             cbsh_config.reset(new CBSHConfig());
             strategy_ = cbsh_config->GetStrategy();
@@ -45,6 +45,7 @@ namespace mapf{
             root_->focal_handle_ = focal_list_.push(root_);
             min_f_cost_ = root_->GetTotalCost();
             focal_list_threshold_ = min_f_cost_ * focal_w_;
+            curr_node_ = root_;
         }
         CBSHSearch::CBSHSearch(Map::Ptr map, const std::vector<Agent::Ptr> &agents, bool block)
             : map_(map), HL_expend_num_(0), block_(block), solution_cost_(-2),
@@ -126,10 +127,17 @@ namespace mapf{
             else rl_done_ = false;
         }
 
-        void CBSHSearch::Step(int a, int t) {
-            //if (!IsCons(a, t)) return false;
+        bool CBSHSearch::isDone() const {
+            return rl_done_;
+        }
+
+        int CBSHSearch::Step(int a, int t) {
+            // a, t不合适，状态不变，返回惩罚reward
+            if (a >= agent_ids_.size()) return map_->GetMapSize();
             std::string conf_agent = agent_ids_.at(a);
+            if (t >= curr_node_->GetPaths().at(conf_agent).Size()) return map_->GetMapSize();
             int loc = curr_node_->GetPaths().at(conf_agent).GetLoc(t);
+
             // 扩展左右节点
             CBSHNode::Ptr next;
 
@@ -138,27 +146,29 @@ namespace mapf{
             Constraint cons(conf_agent, "vertex");
             cons.SetConstraint(loc, -1, t);
             next->AddConstraint(conf_agent, cons);
-
-            BuildChild(next, conf_agent, curr_node_->GetConflictGraph());
-            //LOG_DEBUG_STREAM("Finish build left child. Agent id: " << conf_agent);
-            UpdateFocalList();
+            next->LLPlan(conf_agent, 0);
+            focal_list_.push(next);
 
             curr_node_ = focal_list_.top();
             focal_list_.pop();
-            open_list_.erase(curr_node_->open_handle_);
             if (curr_node_->GetCollisionNum() == 0) { // 无冲突，规划完成
                 solution_cost_ = curr_node_->GetGCost();
                 rl_done_ = true;
             }
+            if (rl_done_) return solution_cost_;
+            else if (!IsCons(a, t)) return 5;
+            else return 1;
         }
 
         bool CBSHSearch::IsCons(int a, int t) const { // TODO:
             auto path = curr_node_->GetPaths();
-            std::string id1 = agent_ids_[a], id2;
-            if (path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t) ||
-                (path.at(id1).GetLoc(t - 1) == path.at(id2).GetLoc(t) &&
-                path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t - 1))) {
-                return true;
+            std::string id1 = agent_ids_[a];
+            for (auto id2: agent_ids_) {
+                if (path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t) ||
+                    (path.at(id1).GetLoc(t - 1) == path.at(id2).GetLoc(t) &&
+                    path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t - 1))) {
+                    return true;
+                }
             }
             return false;
         }
@@ -290,7 +300,7 @@ namespace mapf{
                                     const std::map<std::pair<std::string, std::string>, int> &conflict_graph) {
             auto bc_s = std::chrono::system_clock::now();
             int lower_bound;
-            Conflict parent_conf = node->GetLastestConflict();
+            auto parent_conf = node->GetLastestConflict();
 
             if (parent_conf.Type() == "rectangle") {
                 lower_bound = 0;

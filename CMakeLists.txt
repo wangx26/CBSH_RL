@@ -34,7 +34,7 @@ find_package(Boost REQUIRED COMPONENTS
         program_options
         )
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
-#find_package(LOG4CPP REQUIRED)
+find_package(LOG4CPP REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 #pkg_check_modules(DPKG_DEV REQUIRED libdpkg)
@@ -43,7 +43,7 @@ find_package(PkgConfig REQUIRED)
 add_subdirectory(third_party/pybind11)
 pybind11_add_module(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/src/main.cpp ${SRCS})
 
-#include_directories(${LOG4CPP_INCLUDE_DIR})
+include_directories(${LOG4CPP_INCLUDE_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${Python_INCLUDE_DIRS})
 
@@ -51,7 +51,7 @@ include_directories(${Python_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         ${Boost_LIBRARIES}
-        #${LOG4CPP_LIBRARIES}
+        ${LOG4CPP_LIBRARIES}
         ${Python_LIBRARIES}
         ${OpenCV_LIBS}
         jsoncpp

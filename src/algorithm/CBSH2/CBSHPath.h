@@ -20,7 +20,7 @@ namespace mapf {
             int start_loc_;
             int goal_loc_;
             std::vector<std::pair<int, bool> > path_;   // loc, single记录path点在MDD中是否只可以扩展一条路径
-            //std::vector<bool> single_;  // 
+            //std::vector<bool> single_;  //
 
             std::vector<std::list<Constraint> > constraints_;
 
@@ -49,8 +49,6 @@ namespace mapf {
 
             void SetSingle(int index, bool is_single);
             void InitConstraints(int len);
-
-            
 
         };
 

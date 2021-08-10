@@ -2,14 +2,15 @@
 //#include <fstream>
 //#include <chrono>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
-#include "common/mapf_map/mapf_map.h"
-#include "common/agent/agent.h"
-//#include "algorithm/CBSH2/CBSHSearch.h"
+#include "mapf_map/mapf_map.h"
+#include "agent/agent.h"
+#include "algorithm/CBSH2/CBSHSearch.h"
 
 namespace py = pybind11;
 
-class CBSRL{
+/*class CBSRL{
 private:
     //mapf::CBSH::CBSHSearch search_;
     mapf::Map::Ptr map_;
@@ -64,7 +65,7 @@ public:
     }
     int* GetState() {
         int s[1];
-        /*auto state = search_->GetState();
+        auto state = search_->GetState();
         int s[len];
         int index = 0;
         for (int k = 0; k <= agent_num_; ++k) {
@@ -74,7 +75,7 @@ public:
                     ++index;
                 }
             }
-        }*/
+        }
         return s;
     }
     int GetMapHeight() {
@@ -86,11 +87,13 @@ public:
     int GetAgentNum() {
         return agent_num_;
     }
-};
+};*/
 
 PYBIND11_MODULE(cbsrl, m) {
-    py::class_<CBSRL>(m, "CBSHRL")
+    py::class_<mapf::CBSH::CBSHSearch>(m, "CBSHRL")
         .def(py::init<>())
-        .def("isdone", &CBSRL::isDone)
-        .def("get_maph", &CBSRL::GetMapHeight);
+        .def("getstate", &mapf::CBSH::CBSHSearch::GetState)
+        .def("reset", &mapf::CBSH::CBSHSearch::Reset)
+        .def("step", &mapf::CBSH::CBSHSearch::Step)
+        .def("isdone", &mapf::CBSH::CBSHSearch::isDone);
 }

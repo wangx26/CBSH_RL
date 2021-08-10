@@ -74,14 +74,14 @@ namespace mapf {
             auto s = constraints_.size();
             if(next_timestep < constraints_.size()) {
                 for(auto iter = constraints_[next_timestep].begin(); iter != constraints_[next_timestep].end(); ++iter) {
-                    if((iter->GetType() == "vertex" && iter->GetLoc(0) == next_loc) || 
+                    if((iter->GetType() == "vertex" && iter->GetLoc(0) == next_loc) ||
                         (iter->GetType() == "edge" && iter->GetLoc(0) == curr_loc && iter->GetLoc(1) == next_loc)) {
                         return true;
                     }
                 }
             }
             return false;
-        }        
+        }
 
         void CBSHPath::SetSingle(int index, bool is_single) {
             path_[index].second = is_single;
