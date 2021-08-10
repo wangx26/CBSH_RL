@@ -12,19 +12,20 @@ namespace py = pybind11;
 class CBSRL{
 private:
     //mapf::CBSH::CBSHSearch search_;
-    mapf::Map map_;
+    mapf::Map::Ptr map_;
     int map_height_;
     int map_width_;
     int agent_num_;
 public:
     CBSRL(){
-        map_.LoadFileMap("/home/wolf/CBSH_RL/data/test.map");
-        map_.SetOffset();
-        map_height_ = map_.GetHeight();
-        map_width_ = map_.GetWidth();
+        map_.reset(new mapf::Map());
+        map_->LoadFileMap("/home/ld/CBSH_RL/data/test.map");
+        map_->SetOffset();
+        map_height_ = map_->GetHeight();
+        map_width_ = map_->GetWidth();
         std::vector<mapf::Agent> agents;
         std::vector<int> all_start, all_goal;
-        map_.LoadAgentFile("/home/wolf/CBSH_RL/data/test.csv", all_start, all_goal, agent_num_);
+        map_->LoadAgentFile("/home/ld/CBSH_RL/data/test.csv", all_start, all_goal, agent_num_);
         for(int i = 0; i < agent_num_;  ++i) {
             mapf::Agent agent_each(std::to_string(i));
             agent_each.SetStart(all_start[i]);
@@ -91,5 +92,5 @@ PYBIND11_MODULE(cbsrl, m) {
     py::class_<CBSRL>(m, "CBSHRL")
         .def(py::init<>())
         .def("isdone", &CBSRL::isDone)
-        .def("get map height", &CBSRL::GetMapHeight);
+        .def("get_maph", &CBSRL::GetMapHeight);
 }
