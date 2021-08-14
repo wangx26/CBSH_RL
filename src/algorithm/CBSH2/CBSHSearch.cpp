@@ -13,14 +13,14 @@ namespace mapf{
     namespace CBSH {
         CBSHSearch::CBSHSearch()
             : HL_expend_num_(0), block_(false), solution_cost_(-2),
-              cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false)
+              cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false), reward_(0)
         {
             map_.reset(new Map());
-            map_->LoadFileMap("/home/ld/CBSH_RL/data/test.map");
+            map_->LoadFileMap("/home/wolf/CBSH_RL/data/test.map");
             map_->SetOffset();
             std::vector<int> starts, goals;
             int agent_num;
-            map_->LoadAgentFile("/home/ld/CBSH_RL/data/test.csv", starts, goals, agent_num);
+            map_->LoadAgentFile("/home/wolf/CBSH_RL/data/test.csv", starts, goals, agent_num);
             for(int i = 0; i < agent_num;  ++i) {
                 agent_ids_.push_back(std::to_string(i));
             }
@@ -131,6 +131,10 @@ namespace mapf{
             return rl_done_;
         }
 
+        int CBSHSearch::GetReward() const {
+            return curr_node_->GetGCost() + reward_;
+        }
+
         int CBSHSearch::Step(int a, int t) {
             // a, t不合适，状态不变，返回惩罚reward
             if (a >= agent_ids_.size()) return map_->GetMapSize();
@@ -152,12 +156,11 @@ namespace mapf{
             curr_node_ = focal_list_.top();
             focal_list_.pop();
             if (curr_node_->GetCollisionNum() == 0) { // 无冲突，规划完成
-                solution_cost_ = curr_node_->GetGCost();
                 rl_done_ = true;
             }
-            if (rl_done_) return solution_cost_;
-            else if (!IsCons(a, t)) return 5;
-            else return 1;
+            if (rl_done_) return curr_node_->GetGCost() + reward_;
+            else if (!IsCons(a, t)) return reward_ += 5;
+            else return reward_ += 1;
         }
 
         bool CBSHSearch::IsCons(int a, int t) const { // TODO:

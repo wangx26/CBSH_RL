@@ -93,6 +93,8 @@ namespace mapf {
             bool rl_done_;
             std::vector<int> GetState() const;
             bool isDone() const;
+            int GetReward() const;
+            int reward_;
         };
     }
 }

@@ -33,7 +33,7 @@ set(CMAKE_MODULE_PATH
 find_package(Boost REQUIRED COMPONENTS
         program_options
         )
-find_package(Python COMPONENTS Interpreter Development REQUIRED)
+#find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(LOG4CPP REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
