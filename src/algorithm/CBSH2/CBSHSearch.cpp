@@ -158,15 +158,16 @@ namespace mapf{
             if (curr_node_->GetCollisionNum() == 0) { // 无冲突，规划完成
                 rl_done_ = true;
             }
-            if (rl_done_) return curr_node_->GetGCost() + reward_;
-            else if (!IsCons(a, t)) return reward_ += 5;
-            else return reward_ += 1;
+            if (!IsCons(a, t)) reward_ += 5;
+            else reward_ += 1;
+            return curr_node_->GetGCost() + reward_;
         }
 
         bool CBSHSearch::IsCons(int a, int t) const { // TODO:
             auto path = curr_node_->GetPaths();
             std::string id1 = agent_ids_[a];
             for (auto id2: agent_ids_) {
+                if (id1 == id2) continue;
                 if (path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t) ||
                     (path.at(id1).GetLoc(t - 1) == path.at(id2).GetLoc(t) &&
                     path.at(id1).GetLoc(t) == path.at(id2).GetLoc(t - 1))) {

@@ -1,10 +1,11 @@
 import gym, torch, numpy as np, torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
+from tianshou.utils import BasicLogger
 import tianshou as ts
 
 task = 'cbs_rl:cbs-v0'
 #task = 'CartPole-v0'
-lr = 1e-3
+lr = 5e-4
 gamma = 0.9
 n_step = 4
 eps_train, eps_test = 0.1, 0.05
@@ -16,6 +17,7 @@ batch_size = 64
 train_num, test_num = 10, 100
 buffer_size = 20000
 writer = SummaryWriter('log/dqn')
+logger = BasicLogger(writer)
 
 # 也可以用 SubprocVectorEnv
 train_envs = ts.env.DummyVectorEnv([
@@ -27,15 +29,16 @@ class Net(nn.Module):
     def __init__(self, state_shape, action_shape):
         super().__init__()
         self.model = nn.Sequential(*[
-            nn.Linear(np.prod(state_shape), 128),
+            nn.Linear(np.prod(state_shape), 256),
             nn.ReLU(inplace=True),
-            nn.Linear(128, 128), nn.ReLU(inplace=True),
-            nn.Linear(128, 128), nn.ReLU(inplace=True),
-            nn.Linear(128, np.prod(action_shape))
+            nn.Linear(256, 256), nn.ReLU(inplace=True),
+            nn.Linear(256, 256), nn.ReLU(inplace=True),
+            nn.Linear(256, np.prod(action_shape))
         ])
     def forward(self, s, state=None, info={}):
         if not isinstance(s, torch.Tensor):
             s = torch.tensor(s, dtype=torch.float)
+        print("s: ", s)
         batch = s.shape[0]
         logits = self.model(s.view(batch, -1))
         return logits, state

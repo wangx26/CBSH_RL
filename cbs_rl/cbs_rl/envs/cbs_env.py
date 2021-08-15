@@ -10,11 +10,11 @@ class CBSEnv(gym.Env):
         self.observation_space = spaces.Box(low=-1, high=20, shape=(1, 135), dtype=int)
         self.cbs = cbsrl.CBSHRL()
         self.state = self.cbs.getstate()
-        if self.cbs.isdone():
-            self.reward = self.cbs.getreward()
-        else:
-            self.reward = 0
-        print("init: ", self.cbs.getreward())
+        #if self.cbs.isdone():
+        self.reward = -self.cbs.getreward()
+        #else:
+        #    self.reward = 0
+        print("init: ", self.reward)
         self.done = self.cbs.isdone()
 
     def reset(self):
@@ -22,9 +22,12 @@ class CBSEnv(gym.Env):
     def step(self, action):
         agent = action // 20
         loc = action % 20
-        self.reward = self.cbs.step(agent, loc)
+        self.reward = -self.cbs.step(agent, loc)
         print("agent: ", agent, "loc: ", loc)
         print("reward", self.reward)
         self.state = self.cbs.getstate()
         self.done = self.cbs.isdone()
+        #if self.reward > -45:
+        #    print(self.state)
+        #    wait()
         return self.state, self.reward, self.done, {}
