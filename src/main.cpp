@@ -15,5 +15,6 @@ PYBIND11_MODULE(cbsrl, m) {
         .def("reset", &mapf::CBSH::CBSHSearch::Reset)
         .def("step", &mapf::CBSH::CBSHSearch::Step)
         .def("isdone", &mapf::CBSH::CBSHSearch::isDone)
-        .def("getreward", &mapf::CBSH::CBSHSearch::GetReward);
+        .def("getreward", &mapf::CBSH::CBSHSearch::GetReward)
+        .def("getvalidaction", &mapf::CBSH::CBSHSearch::GetValidAction);
 }

@@ -164,6 +164,16 @@ namespace mapf{
             return reward_;
         }
 
+        std::vector<int> CBSHSearch::GetValidAction() const {
+            std::vector<int> res;
+            for (int a = 0; a < agent_ids_.size(); ++a) {
+                for (int t = 0; t < 20; ++t) {
+                    if (IsCons(a, t)) res.push_back(a * 20 + t);
+                }
+            }
+            return res;
+        }
+
         bool CBSHSearch::IsCons(int a, int t) const { // TODO:
             auto path = curr_node_->GetPaths();
             std::string id1 = agent_ids_[a];

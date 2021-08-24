@@ -20,7 +20,9 @@ class CBSEnv(gym.Env):
         self.done = self.cbs.isdone()
 
     def reset(self):
+        self.cbs.reset()
         return self.state
+
     def step(self, action):
         agent = action // 20
         loc = action % 20
@@ -33,3 +35,6 @@ class CBSEnv(gym.Env):
         #    print(self.state)
         #    wait()
         return self.state, self.reward, self.done, {}
+
+    def getvalidaction(self):
+        return self.cbs.getvalidaction()
