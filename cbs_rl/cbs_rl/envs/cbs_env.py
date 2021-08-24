@@ -27,8 +27,8 @@ class CBSEnv(gym.Env):
         agent = action // 20
         loc = action % 20
         self.reward = -self.cbs.step(agent, loc)
-        print("agent: ", agent, "loc: ", loc)
-        print("reward", self.reward)
+        # print("agent: ", agent, "loc: ", loc)
+        # print("reward", self.reward)
         self.state = numpy.array(self.cbs.getstate()).reshape(1, 3, 10, 10).astype(numpy.float32)
         self.done = self.cbs.isdone()
         #if self.reward > -45:

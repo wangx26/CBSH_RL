@@ -54,7 +54,7 @@ def local_train(index, global_model, optimizer, save=False):
 
                 m = Categorical(policy)
                 action = m.sample().item()
-                print("Process {}. Episode {}, action {}".format(index, curr_episode, action))
+                # print("Process {}. Episode {}, action {}".format(index, curr_episode, action))
 
                 state, reward, done, _ = env.step(action)
                 state = torch.from_numpy(state)
