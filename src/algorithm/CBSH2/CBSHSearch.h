@@ -95,6 +95,7 @@ namespace mapf {
             bool isDone() const;
             int GetReward() const;
             int reward_;
+            std::vector<int> GetValidAction() const;
         };
     }
 }

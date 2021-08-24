@@ -76,13 +76,13 @@ def local_train(index, global_model, optimizer, save=False):
 
                 if done:
                     break
-            
+
             R = torch.zeros((1, 1), dtype=torch.float)
             if use_gpu:
                 R = R.cuda()
             if not done:
                 _, R, _, _ = local_model(state, h_0, c_0)
-            
+
             gae = torch.zeros((1, 1), dtype=torch.float)
             if use_gpu:
                 gae = gae.cuda()
