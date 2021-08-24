@@ -123,6 +123,7 @@ namespace mapf{
             curr_node_ = root_;
             min_f_cost_ = root_->GetTotalCost();
             focal_list_threshold_ = min_f_cost_ * focal_w_;
+            reward_ = 0;
             if (curr_node_->GetCollisionNum() == 0) rl_done_ = true;
             else rl_done_ = false;
         }
@@ -131,11 +132,11 @@ namespace mapf{
             return rl_done_;
         }
 
-        int CBSHSearch::GetReward() const {
+        float CBSHSearch::GetReward() const {
             return curr_node_->GetGCost() + reward_;
         }
 
-        int CBSHSearch::Step(int a, int t) {
+        float CBSHSearch::Step(int a, int t) {
             // a, t不合适，状态不变，返回惩罚reward
             if (a >= agent_ids_.size()) return map_->GetMapSize();
             std::string conf_agent = agent_ids_.at(a);
@@ -158,9 +159,9 @@ namespace mapf{
             if (curr_node_->GetCollisionNum() == 0) { // 无冲突，规划完成
                 rl_done_ = true;
             }
-            if (!IsCons(a, t)) reward_ += 5;
-            else reward_ += 1;
-            return curr_node_->GetGCost() + reward_;
+            if (!IsCons(a, t)) reward_ += 2;
+            else reward_ += 0.1;
+            return reward_;
         }
 
         bool CBSHSearch::IsCons(int a, int t) const { // TODO:

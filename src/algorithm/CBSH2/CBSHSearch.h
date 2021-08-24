@@ -87,13 +87,13 @@ namespace mapf {
         public:
             // RL
             void Reset();
-            int Step(int a, int t);
+            float Step(int a, int t);
             bool IsCons(int a, int t) const;
             CBSHNode::Ptr curr_node_;
             bool rl_done_;
             std::vector<int> GetState() const;
             bool isDone() const;
-            int GetReward() const;
+            float GetReward() const;
             int reward_;
         };
     }

@@ -149,7 +149,7 @@ def local_test(index, global_model):
         if curr_step > num_global_steps or actions.count(actions[0]) == actions.maxlen:
             done = True
         if done:
-            print("Test done, g cost: ", env.getgcost())
+            print("Test done, reward: ", reward)
             curr_step = 0
             actions.clear()
             state = env.reset()
