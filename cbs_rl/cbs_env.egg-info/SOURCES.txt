@@ -1,6 +1,0 @@
-setup.py
-cbs_env.egg-info/PKG-INFO
-cbs_env.egg-info/SOURCES.txt
-cbs_env.egg-info/dependency_links.txt
-cbs_env.egg-info/requires.txt
-cbs_env.egg-info/top_level.txt

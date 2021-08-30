@@ -58,7 +58,7 @@ def local_train(index, global_model, optimizer, save=False):
                 # print("Process {}. Episode {}, action {}".format(index, curr_episode, action))
 
                 state, reward, done, _ = env.step(action)
-                valid_action = env.getvalidaction()
+                #valid_action = env.getvalidaction()
                 state = torch.from_numpy(state)
                 if use_gpu:
                     state = state.cuda()
@@ -75,7 +75,7 @@ def local_train(index, global_model, optimizer, save=False):
                 log_policies.append(log_policy[0, action])
                 rewards.append(reward)
                 entropies.append(entropy)
-                valid_list.append(valid_action)
+                #valid_list.append(valid_action)
 
                 if done:
                     break
@@ -104,10 +104,10 @@ def local_train(index, global_model, optimizer, save=False):
                 entropy_loss = entropy_loss + entropy
 
             # valid loss
-            valid_loss = - 16.0 * torch.mean(torch.log(torch.clamp(log_policies, 1e-10, 1.0)) * valid_list\
-                + torch.log(torch.clamp(log_policies, 1e-10, 1.0) * (1 - valid_list)))
+            #valid_loss = - 16.0 * torch.mean(torch.log(torch.clamp(log_policies, 1e-10, 1.0)) * valid_list\
+            #    + torch.log(torch.clamp(log_policies, 1e-10, 1.0) * (1 - valid_list)))
 
-            total_loss = -actor_loss + critic_loss - beta * entropy_loss + valid_loss
+            total_loss = -actor_loss + critic_loss - beta * entropy_loss #+ valid_loss
             writer.add_scalar("Train_{}/loss".format(index), total_loss, curr_episode)
             optimizer.zero_grad()
             total_loss.backward()
