@@ -88,14 +88,14 @@ namespace mapf {
             // RL
             void Reset();
             float Step(int a, int t);
-            float Step(int a);
+            float StepLorR(int i);
             bool IsCons(int a, int t) const;
             CBSHNode::Ptr curr_node_;
             bool rl_done_;
-            std::vector<int> GetState() const;
+            std::vector<std::vector<int> > GetState() const;
             bool isDone() const;
             float GetReward() const;
-            int reward_;
+            float reward_;
             std::vector<int> GetValidAction() const;
         };
     }

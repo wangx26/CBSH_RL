@@ -1,7 +1,7 @@
 import cbsrl
 
 a = cbsrl.CBSHRL()
-print(a.getstate())
-a.isdone()
-a.step(0, 3)
+while not a.isdone():
+    print(a.getstate())
+    a.stepLorR(1)
 print(a.getstate())

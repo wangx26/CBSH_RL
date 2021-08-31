@@ -8,7 +8,7 @@ class CBSEnv(gym.Env):
     def __init__(self) -> None:
         super().__init__()
         #self.action_space = spaces.Tuple([spaces.Discrete(2),spaces.Discrete(20)])
-        self.action_space = spaces.Discrete(40)
+        self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Box(low=-1, high=20, shape=(3, 100), dtype=int)
         self.cbs = cbsrl.CBSHRL()
         self.state = numpy.array(self.cbs.getstate()).reshape(1, 3, 10, 10).astype(numpy.float32)
@@ -24,9 +24,10 @@ class CBSEnv(gym.Env):
         return self.state
 
     def step(self, action):
-        agent = action // 20
-        loc = action % 20
-        self.reward = -self.cbs.step(agent, loc)
+        #agent = action // 20
+        #loc = action % 20
+        #self.reward = -self.cbs.step(agent, loc)
+        self.reward = -self.cbs.stepLorR(action)
         # print("agent: ", agent, "loc: ", loc)
         # print("reward", self.reward)
         self.state = numpy.array(self.cbs.getstate()).reshape(1, 3, 10, 10).astype(numpy.float32)

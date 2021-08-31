@@ -35,9 +35,9 @@ def train():
             process = mp.Process(target=local_train, args=(index, global_model, optimizer))
         process.start()
         processes.append(process)
-    #process = mp.Process(target=local_test, args=(num_processes, global_model))
-    #process.start()
-    #processes.append(process)
+    process = mp.Process(target=local_test, args=(num_processes, global_model))
+    process.start()
+    processes.append(process)
     for process in processes:
         process.join()
 

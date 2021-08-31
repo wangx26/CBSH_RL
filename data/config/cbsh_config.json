@@ -1,12 +1,12 @@
 {
-    "strategy":"WDG",
+    "strategy":"NONE",
     "focal":1.0,
     "rectangle_reasoning":false,
-	"map_path":"/home/wolf/CBSH_RL/data/test.map",
-    "agent_path":"/home/wolf/CBSH_RL/data/test.csv",
+	"map_path":"/hy-tmp/CBSH_RL/data/test.map",
+    "agent_path":"/hy-tmp/CBSH_RL/data/test.csv",
     "random_agent":{
         "agent_num":75,
-        "random_agent_path":"/home/wolf/CBSH_RL/data/agents.csv",
+        "random_agent_path":"/hy-tmp/CBSH_RL/data/agents.csv",
 	    "random_seed":10
     }
 }

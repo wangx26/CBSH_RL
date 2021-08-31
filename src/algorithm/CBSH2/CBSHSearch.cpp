@@ -16,11 +16,11 @@ namespace mapf{
               cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false), reward_(0)
         {
             map_.reset(new Map());
-            map_->LoadFileMap("/home/wolf/CBSH_RL/data/test.map");
+            map_->LoadFileMap("/hy-tmp/CBSH_RL/data/test.map");
             map_->SetOffset();
             std::vector<int> starts, goals;
             int agent_num;
-            map_->LoadAgentFile("/home/wolf/CBSH_RL/data/test.csv", starts, goals, agent_num);
+            map_->LoadAgentFile("/hy-tmp/CBSH_RL/data/test.csv", starts, goals, agent_num);
             for(int i = 0; i < agent_num;  ++i) {
                 agent_ids_.push_back(std::to_string(i));
             }
@@ -41,8 +41,8 @@ namespace mapf{
             root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_, rectangle_reasoning_,
                 map_, mddtable_, astar_h_, block_));
 
-            root_->open_handle_ = open_list_.push(root_);
-            root_->focal_handle_ = focal_list_.push(root_);
+            // root_->open_handle_ = open_list_.push(root_);
+            // root_->focal_handle_ = focal_list_.push(root_);
             min_f_cost_ = root_->GetTotalCost();
             focal_list_threshold_ = min_f_cost_ * focal_w_;
             curr_node_ = root_;
@@ -164,6 +164,46 @@ namespace mapf{
             return reward_;
         }
 
+        float CBSHSearch::StepLorR(int i) {
+            // 选择左节点还是右节点扩展
+            curr_node_->ClassifyConflicts();
+            curr_node_->ChooseConflict();
+            CBSHNode::Ptr next;
+            Conflict curr_conf = curr_node_->GetLastestConflict();
+            std::string conf_agent1 = curr_conf.GetAgent(0);
+            std::string conf_agent2 = curr_conf.GetAgent(1);
+            std::string conf_agent;
+            if (i == 0) conf_agent = conf_agent1 < conf_agent2 ? conf_agent1 : conf_agent2;
+            else if (i == 1) conf_agent = conf_agent1 > conf_agent2 ? conf_agent1 : conf_agent2;
+            next.reset(new CBSHNode(curr_node_, conf_agent));
+            if (curr_conf.Type() == "vertex") {
+                //LOG_DEBUG_STREAM("Vertex conflict loc: " << curr_conf.GetLoc(0) << "; timestep: " << curr_conf.GetTimestep());
+                Constraint cons(conf_agent, "vertex");
+                cons.SetConstraint(curr_conf.GetLoc(0), -1, curr_conf.GetTimestep());
+                next->AddConstraint(conf_agent, cons);
+            } else {
+                //LOG_DEBUG_STREAM("Edge conflict loc1: " << curr_conf.GetLoc(0) << "; loc2: " << curr_conf.GetLoc(1) <<
+                //                  "; timestep: " << curr_conf.GetTimestep());
+                Constraint cons(conf_agent, "edge");
+                int conf_index;
+                if (i == 0) conf_agent1 < conf_agent2 ? 0 : 1;
+                else if (i == 1) conf_agent1 > conf_agent2 ? 0 : 1;
+                cons.SetConstraint(curr_conf.GetLoc(conf_index), curr_conf.GetLoc(1 - conf_index), curr_conf.GetTimestep());
+                next->AddConstraint(conf_agent, cons);
+            }
+
+            BuildChild(next, conf_agent, curr_node_->GetConflictGraph());
+            UpdateFocalList();
+            curr_node_ = focal_list_.top();
+            focal_list_.pop();
+            open_list_.erase(curr_node_->open_handle_);
+            if (curr_node_->GetCollisionNum() == 0) { // 无冲突，规划完成
+                rl_done_ = true;
+            }
+            reward_ += 0.1;
+            return reward_;
+        }
+
         std::vector<int> CBSHSearch::GetValidAction() const {
             std::vector<int> res;
             for (int a = 0; a < agent_ids_.size(); ++a) {
@@ -188,16 +228,17 @@ namespace mapf{
             return false;
         }
 
-        std::vector<int> CBSHSearch::GetState() const {
+        std::vector<std::vector<int> > CBSHSearch::GetState() const {
             auto map = map_->GetMap();
-            std::vector<int> res = map;
+            std::vector<std::vector<int> > res;
+            res.push_back(map);
             for (auto a: agent_ids_) {
                 auto state = map;
                 auto path = curr_node_->GetPaths().at(a).GetPaths();
                 for (int i = 0; i < path.size(); ++i) {
                     state[path[i].first] = i + 1;
                 }
-                res.insert(res.end(), state.begin(), state.end());
+                res.push_back(state);
             }
             return res;
         }
