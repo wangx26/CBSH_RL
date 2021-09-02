@@ -86,7 +86,7 @@ namespace mapf {
                                                CBSHNode::Ptr node);
         public:
             // RL
-            void Reset();
+            void Reset(bool reload);
             float Step(int a, int t);
             float StepLorR(int i);
             bool IsCons(int a, int t) const;

@@ -116,7 +116,8 @@ namespace mapf{
             focal_list_threshold_ = min_f_cost_ * focal_w_;
         }
 
-        void CBSHSearch::Reset() {
+        void CBSHSearch::Reset(bool reload) {
+            // TODO
             //LOG_DEBUG_STREAM("Reset state");
             open_list_.clear();
             focal_list_.clear();

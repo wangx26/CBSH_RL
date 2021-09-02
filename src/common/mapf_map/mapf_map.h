@@ -59,6 +59,11 @@ namespace mapf {
         void SetOffset();
 
         std::vector<int> GetMap() const;
+
+        // TODO:
+        void RandomMapTrain();
+        void RandomMapTest();
+        void LoadBenchmarkMap(bool train);
     };
 }
 
