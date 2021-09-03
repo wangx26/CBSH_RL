@@ -10,6 +10,7 @@
 #include "mapf_map/mapf_map.h"
 #include "Htable.h"
 #include "MDD.h"
+#include "agent/agent_server.h"
 
 namespace mapf {
     namespace CBSH {
@@ -97,6 +98,12 @@ namespace mapf {
             float GetReward() const;
             float reward_;
             std::vector<int> GetValidAction() const;
+            bool train_;
+            int rand_seed_;
+            std::string LoadMap(const CBSHConfig::Ptr &config);
+            void LoadAgent(const CBSHConfig::Ptr &config, std::vector<int> &starts,
+                           std::vector<int> &goals, std::string map_name);
+            AgentServer::Ptr agent_server_;
         };
     }
 }

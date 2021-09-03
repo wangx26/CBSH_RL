@@ -11,12 +11,16 @@ namespace mapf {
         std::string strategy_;  // CBS,PC,CG,DG,WDG
         float focal_;
         bool rectangle_reasoning_;
-        std::string map_path_;
+        std::string trainmap_path_;
+        std::string testmap_path_;
         std::string agent_path_;
 
         int agent_num_;
         std::string random_agent_path_;
         int random_seed_;
+
+        float train_rate_;
+        bool train_;
     public:
         typedef std::shared_ptr<CBSHConfig> Ptr;
 
@@ -34,8 +38,11 @@ namespace mapf {
         bool GetRectangle() const {
             return rectangle_reasoning_;
         }
-        std::string GetMapPath() const {
-            return map_path_;
+        std::string GetTrainMapPath() const {
+            return trainmap_path_;
+        }
+        std::string GetTestMapPath() const {
+            return testmap_path_;
         }
         std::string GetAgentPath() const {
             return agent_path_;
@@ -48,6 +55,12 @@ namespace mapf {
         }
         int GetRandomSeed() const {
             return random_seed_;
+        }
+        float GetTrainRate() const {
+            return train_rate_;
+        }
+        bool GetTrain() const {
+            return train_;
         }
     };
 }

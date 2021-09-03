@@ -3,11 +3,18 @@
 #include <random>
 #include <algorithm>
 #include <sstream>
+#include <boost/filesystem.hpp>
 
 #include "mapf_map.h"
 //#include "../../log/log.h"
+#include "config/cbsh_config.h"
 
 namespace mapf {
+    Map::Map() {
+        CBSHConfig::Ptr config;
+        config.reset(new CBSHConfig());
+        rand_seed_ = config->GetRandomSeed();
+    }
 
     void Map::SetOffset() {
         move_offset_.resize(valid_move_::MOVE_COUNT);
@@ -27,13 +34,22 @@ namespace mapf {
     }
 
     void Map::LoadFileMap(const std::string file_path) {
+        auto filelist = GetFileList(file_path);
+        std::srand(rand_seed_);
+        int index = std::rand() % filelist.size();
         std::string line;
-        std::fstream f(file_path.c_str(), std::ios_base::in);
+        std::fstream f(file_path + "/" + filelist[index] + "/" + filelist[index] + ".map", std::ios_base::in);
         if(f.is_open()){
             std::getline(f, line);
-            width_ = std::atoi(line.c_str());
             std::getline(f, line);
-            height_ = std::atoi(line.c_str());
+            std::string num;
+            std::istringstream readstr(line);
+            readstr >> num >> num;
+            width_ = std::atoi(num.c_str());
+            readstr.str(line);
+            readstr >> num >> num;
+            height_ = std::atoi(num.c_str());
+            std::getline(f, line);
             for(int i = 0; i < height_; ++i) {
                 std::getline(f, line);
                 for(int j = 0; j < width_; ++j){
@@ -52,6 +68,27 @@ namespace mapf {
         }
         std::cout << "Read Map" << std::endl;
         f.close();
+    }
+
+    std::vector<std::string> Map::GetFileList(std::string path) const {
+        std::vector<std::string> filelist;
+        try {
+            boost::filesystem::path dir(path);
+            if (boost::filesystem::exists(dir) && boost::filesystem::is_directory(dir)) {
+                boost::filesystem::directory_iterator end_iter;
+                for (boost::filesystem::directory_iterator it(dir); it != end_iter; ++it) {
+                    if (boost::filesystem::is_directory(it->path())) {
+                        filelist.push_back(it->path().string());
+                    }
+                }
+            } else {
+                std::cout << "Agent Path not exist: " << path << std::endl;
+            }
+        }
+        catch (...) {
+            std::cout << "Path not a directory: " << path << std::endl;
+        }
+        return filelist;
     }
 
     void Map::LoadAgentFile(const std::string file_path, std::vector<int> &starts,

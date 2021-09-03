@@ -4,7 +4,7 @@
 
 #include <vector>
 #include <string>
-#include <boost/smart_ptr.hpp>
+#include <memory>
 
 namespace mapf {
 

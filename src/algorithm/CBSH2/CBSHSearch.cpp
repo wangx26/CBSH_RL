@@ -15,23 +15,29 @@ namespace mapf{
             : HL_expend_num_(0), block_(false), solution_cost_(-2),
               cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false), reward_(0)
         {
-            map_.reset(new Map());
-            map_->LoadFileMap("/hy-tmp/CBSH_RL/data/test.map");
-            map_->SetOffset();
-            std::vector<int> starts, goals;
-            int agent_num;
-            map_->LoadAgentFile("/hy-tmp/CBSH_RL/data/test.csv", starts, goals, agent_num);
-            for(int i = 0; i < agent_num;  ++i) {
-                agent_ids_.push_back(std::to_string(i));
-            }
-            for(int i = 0; i < agent_num; ++i) {
-                ComputeH(goals[i], std::to_string(i));
-            }
             CBSHConfig::Ptr cbsh_config;
             cbsh_config.reset(new CBSHConfig());
             strategy_ = cbsh_config->GetStrategy();
             focal_w_ = cbsh_config->GetFocal();
             rectangle_reasoning_ = cbsh_config->GetRectangle();
+            train_ = cbsh_config->GetTrain();
+            rand_seed_ = cbsh_config->GetRandomSeed();
+
+            map_.reset(new Map());
+            std::string map_name = LoadMap(cbsh_config);
+
+            int agent_num;
+            agent_num = cbsh_config->GetAgentNum();
+            for(int i = 0; i < agent_num;  ++i) {
+                agent_ids_.push_back(std::to_string(i));
+            }
+            agent_server_.reset(new AgentServer());
+            std::vector<int> starts, goals;
+            map_->LoadAgentFile("/hy-tmp/CBSH_RL/data/test.csv", starts, goals, agent_num);
+
+            for(int i = 0; i < agent_num; ++i) {
+                ComputeH(goals[i], std::to_string(i));
+            }
 
             open_list_.clear();
             focal_list_.clear();
@@ -47,6 +53,20 @@ namespace mapf{
             focal_list_threshold_ = min_f_cost_ * focal_w_;
             curr_node_ = root_;
         }
+
+        void CBSHSearch::LoadMap(const CBSHConfig::Ptr &config) {
+            std::string map_path;
+            if (train_) map_path = config->GetTrainMapPath();
+            else map_path = config->GetTestMapPath();
+            map_->LoadFileMap(map_path);
+            map_->SetOffset();
+        }
+
+        void CBSHSearch::LoadAgent(const CBSHConfig::Ptr &config, std::vector<int> &starts, std::vector<int> &goals) {
+            std::string agent_path;
+        }
+
+
         CBSHSearch::CBSHSearch(Map::Ptr map, const std::vector<Agent::Ptr> &agents, bool block)
             : map_(map), HL_expend_num_(0), block_(block), solution_cost_(-2),
               cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false)
@@ -510,6 +530,7 @@ namespace mapf{
         }
 
         void CBSHSearch::ComputeH(int goal_loc, std::string agent_id){
+            astar_h_.clear();
             int map_size = map_->GetMapSize();
             std::vector<int> temp_h(map_size, std::numeric_limits<int>::max());
 

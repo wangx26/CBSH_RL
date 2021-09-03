@@ -21,11 +21,12 @@ namespace mapf {
 
         enum valid_move_ { NORTH, EAST, SOUTH, WEST, WAIT, MOVE_COUNT};
 
-        Map()=default;
+        Map();
         ~Map() = default;
 
         void LoadPictureMap(const std::string file_path);
 
+        // 随机选择一个文件
         void LoadFileMap(const std::string file_path);
 
         void LoadAgentFile(const std::string file_path, std::vector<int> &starts,
@@ -59,11 +60,9 @@ namespace mapf {
         void SetOffset();
 
         std::vector<int> GetMap() const;
-
-        // TODO:
-        void RandomMapTrain();
-        void RandomMapTest();
-        void LoadBenchmarkMap(bool train);
+private:
+        std::vector<std::string> GetFileList(std::string path) const;
+        float rand_seed_;
     };
 }
 

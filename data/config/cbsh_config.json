@@ -2,7 +2,7 @@
     "strategy":"NONE",
     "focal":1.0,
     "rectangle_reasoning":false,
-	"map_path":"/hy-tmp/CBSH_RL/data/test.map",
+	"map_path":"/hy-tmp/CBSH_RL/data/train_maps",
     "agent_path":"/hy-tmp/CBSH_RL/data/test.csv",
     "random_agent":{
         "agent_num":75,
