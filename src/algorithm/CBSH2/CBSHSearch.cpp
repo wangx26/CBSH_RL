@@ -15,55 +15,54 @@ namespace mapf{
             : HL_expend_num_(0), block_(false), solution_cost_(-2),
               cost_upperbound_(std::numeric_limits<int>::max()), rl_done_(false), reward_(0)
         {
-            CBSHConfig::Ptr cbsh_config;
-            cbsh_config.reset(new CBSHConfig());
-            strategy_ = cbsh_config->GetStrategy();
-            focal_w_ = cbsh_config->GetFocal();
-            rectangle_reasoning_ = cbsh_config->GetRectangle();
-            train_ = cbsh_config->GetTrain();
-            rand_seed_ = cbsh_config->GetRandomSeed();
-
+            config_.reset(new CBSHConfig());
+            strategy_ = config_->GetStrategy();
+            focal_w_ = config_->GetFocal();
+            rectangle_reasoning_ = config_->GetRectangle();
+            train_ = config_->GetTrain();
+            rand_seed_ = config_->GetRandomSeed();
+            // load map
             map_.reset(new Map());
-            std::string map_name = LoadMap(cbsh_config);
-
-            int agent_num;
-            agent_num = cbsh_config->GetAgentNum();
-            for(int i = 0; i < agent_num;  ++i) {
-                agent_ids_.push_back(std::to_string(i));
-            }
+            std::string map_name = LoadMap();
+            // load agent
+            int agent_num = config_->GetAgentNum();
+            for(int i = 0; i < agent_num;  ++i) agent_ids_.push_back(std::to_string(i));
             agent_server_.reset(new AgentServer());
             std::vector<int> starts, goals;
-            map_->LoadAgentFile("/hy-tmp/CBSH_RL/data/test.csv", starts, goals, agent_num);
-
-            for(int i = 0; i < agent_num; ++i) {
-                ComputeH(goals[i], std::to_string(i));
-            }
+            //map_->LoadAgentFile("/hy-tmp/CBSH_RL/data/test.csv", starts, goals, agent_num, mapna);
+            LoadAgent(starts, goals, map_name);
+            for(int i = 0; i < agent_num; ++i) ComputeH(goals[i], std::to_string(i));
 
             open_list_.clear();
             focal_list_.clear();
-
             // 规划根节点
             // 构造根节点时进行初始规划、识别冲突
             root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_, rectangle_reasoning_,
                 map_, mddtable_, astar_h_, block_));
-
-            // root_->open_handle_ = open_list_.push(root_);
-            // root_->focal_handle_ = focal_list_.push(root_);
             min_f_cost_ = root_->GetTotalCost();
             focal_list_threshold_ = min_f_cost_ * focal_w_;
             curr_node_ = root_;
         }
 
-        void CBSHSearch::LoadMap(const CBSHConfig::Ptr &config) {
+        std::string CBSHSearch::LoadMap() {
             std::string map_path;
-            if (train_) map_path = config->GetTrainMapPath();
-            else map_path = config->GetTestMapPath();
-            map_->LoadFileMap(map_path);
+            if (train_) map_path = config_->GetTrainMapPath();
+            else map_path = config_->GetTestMapPath();
+            std::string map_name = map_->LoadFileMap(map_path);
             map_->SetOffset();
+            return map_name;
         }
 
-        void CBSHSearch::LoadAgent(const CBSHConfig::Ptr &config, std::vector<int> &starts, std::vector<int> &goals) {
-            std::string agent_path;
+        void CBSHSearch::LoadAgent(std::vector<int> &starts, std::vector<int> &goals,
+                                   std::string map_name) {
+            agent_server_->LoadAgentScenarios(map_name);
+            std::vector<std::pair<int, int> > s, g;
+            if (train_) agent_server_->AgentTrain(s, g);
+            else agent_server_->AgentTest(s, g);
+            starts.clear();
+            goals.clear();
+            for (const auto &p: s) starts.emplace_back(map_->ToLoc(p.first, p.second));
+            for (const auto &p: g) goals.emplace_back(map_->ToLoc(p.first, p.second));
         }
 
 
@@ -83,11 +82,10 @@ namespace mapf{
             }
             auto mp_ch_e = std::chrono::system_clock::now();
 
-            CBSHConfig::Ptr cbsh_config;
-            cbsh_config.reset(new CBSHConfig());
-            strategy_ = cbsh_config->GetStrategy();
-            focal_w_ = cbsh_config->GetFocal();
-            rectangle_reasoning_ = cbsh_config->GetRectangle();
+            config_.reset(new CBSHConfig());
+            strategy_ = config_->GetStrategy();
+            focal_w_ = config_->GetFocal();
+            rectangle_reasoning_ = config_->GetRectangle();
 
             open_list_.clear();
             focal_list_.clear();
@@ -137,8 +135,16 @@ namespace mapf{
         }
 
         void CBSHSearch::Reset(bool reload) {
-            // TODO
             //LOG_DEBUG_STREAM("Reset state");
+            if (reload) {
+                std::string map_name = LoadMap();
+                int agent_num = config_->GetAgentNum();
+                std::vector<int> starts, goals;
+                LoadAgent(starts, goals, map_name);
+                for(int i = 0; i < agent_num; ++i) ComputeH(goals[i], std::to_string(i));
+                root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_, rectangle_reasoning_,
+                            map_, mddtable_, astar_h_, block_));
+            }
             open_list_.clear();
             focal_list_.clear();
             curr_node_ = root_;

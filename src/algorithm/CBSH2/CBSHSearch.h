@@ -100,10 +100,10 @@ namespace mapf {
             std::vector<int> GetValidAction() const;
             bool train_;
             int rand_seed_;
-            std::string LoadMap(const CBSHConfig::Ptr &config);
-            void LoadAgent(const CBSHConfig::Ptr &config, std::vector<int> &starts,
-                           std::vector<int> &goals, std::string map_name);
+            std::string LoadMap();
+            void LoadAgent(std::vector<int> &starts, std::vector<int> &goals, std::string map_name);
             AgentServer::Ptr agent_server_;
+            CBSHConfig::Ptr config_;
         };
     }
 }

@@ -33,7 +33,7 @@ namespace mapf {
         return map_;
     }
 
-    void Map::LoadFileMap(const std::string file_path) {
+    std::string Map::LoadFileMap(const std::string file_path) {
         auto filelist = GetFileList(file_path);
         std::srand(rand_seed_);
         int index = std::rand() % filelist.size();
@@ -64,10 +64,10 @@ namespace mapf {
         }
         else {
             std::cout << "Open map fail :" << file_path.c_str() << std::endl;
-            return;
         }
         std::cout << "Read Map" << std::endl;
         f.close();
+        return filelist[index];
     }
 
     std::vector<std::string> Map::GetFileList(std::string path) const {

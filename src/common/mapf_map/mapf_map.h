@@ -27,7 +27,7 @@ namespace mapf {
         void LoadPictureMap(const std::string file_path);
 
         // 随机选择一个文件
-        void LoadFileMap(const std::string file_path);
+        std::string LoadFileMap(const std::string file_path);
 
         void LoadAgentFile(const std::string file_path, std::vector<int> &starts,
         std::vector<int> &goals, int &agent_num);

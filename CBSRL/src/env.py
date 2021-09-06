@@ -15,8 +15,8 @@ class CBSEnv(gym.Env):
         print("init: ", self.reward)
         self.done = self.cbs.isdone()
 
-    def reset(self):
-        self.cbs.reset()
+    def reset(self, reload):
+        self.cbs.reset(reload)
         return self.state
 
     def step(self, action):
