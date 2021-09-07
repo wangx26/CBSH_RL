@@ -7,7 +7,6 @@
 #include "CBSHSearch.h"
 #include "log.h"
 #include "LLNode.h"
-#include "cbsh_config.h"
 
 namespace mapf{
     namespace CBSH {
@@ -21,6 +20,7 @@ namespace mapf{
             rectangle_reasoning_ = config_->GetRectangle();
             train_ = config_->GetTrain();
             rand_seed_ = config_->GetRandomSeed();
+            std::srand(rand_seed_);
             // load map
             map_.reset(new Map());
             std::string map_name = LoadMap();
@@ -29,8 +29,8 @@ namespace mapf{
             for(int i = 0; i < agent_num;  ++i) agent_ids_.push_back(std::to_string(i));
             agent_server_.reset(new AgentServer());
             std::vector<int> starts, goals;
-            //map_->LoadAgentFile("/hy-tmp/CBSH_RL/data/test.csv", starts, goals, agent_num, mapna);
             LoadAgent(starts, goals, map_name);
+            astar_h_.clear();
             for(int i = 0; i < agent_num; ++i) ComputeH(goals[i], std::to_string(i));
 
             open_list_.clear();
@@ -42,6 +42,9 @@ namespace mapf{
             min_f_cost_ = root_->GetTotalCost();
             focal_list_threshold_ = min_f_cost_ * focal_w_;
             curr_node_ = root_;
+            if (curr_node_->GetCollisionNum() == 0) { // 无冲突，规划完成
+                rl_done_ = true;
+            }
         }
 
         std::string CBSHSearch::LoadMap() {
@@ -141,6 +144,7 @@ namespace mapf{
                 int agent_num = config_->GetAgentNum();
                 std::vector<int> starts, goals;
                 LoadAgent(starts, goals, map_name);
+                astar_h_.clear();
                 for(int i = 0; i < agent_num; ++i) ComputeH(goals[i], std::to_string(i));
                 root_.reset(new CBSHNode(agent_ids_, starts, goals, strategy_, rectangle_reasoning_,
                             map_, mddtable_, astar_h_, block_));
@@ -536,7 +540,6 @@ namespace mapf{
         }
 
         void CBSHSearch::ComputeH(int goal_loc, std::string agent_id){
-            astar_h_.clear();
             int map_size = map_->GetMapSize();
             std::vector<int> temp_h(map_size, std::numeric_limits<int>::max());
 

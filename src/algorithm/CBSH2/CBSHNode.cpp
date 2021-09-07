@@ -1058,6 +1058,10 @@ namespace mapf {
         }
 
         Conflict CBSHNode::GetLastestConflict() const {
+            for (auto it = conflicts_.begin(); it != conflicts_.end(); ++it) {
+                auto temp = it->GetLoc(0);
+                int a;
+            }
             return conflicts_.back();
         }
 

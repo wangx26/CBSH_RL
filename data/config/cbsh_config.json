@@ -2,11 +2,14 @@
     "strategy":"NONE",
     "focal":1.0,
     "rectangle_reasoning":false,
-	"map_path":"/hy-tmp/CBSH_RL/data/train_maps",
-    "agent_path":"/hy-tmp/CBSH_RL/data/test.csv",
+	"trainmap_path":"/home/ld/CBSH_RL/data/train_maps",
+	"testmap_path":"/home/ld/CBSH_RL/data/test_maps",
+    "agent_path":"/home/ld/CBSH_RL/data/test.csv",
+    "train_rate":0.8,
+    "train":true,
+    "agent_num":10,
     "random_agent":{
-        "agent_num":75,
-        "random_agent_path":"/hy-tmp/CBSH_RL/data/agents.csv",
+        "random_agent_path":"/home/ld/CBSH_RL/data/agents.csv",
 	    "random_seed":10
     }
 }

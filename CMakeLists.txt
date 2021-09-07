@@ -31,7 +31,7 @@ set(CMAKE_MODULE_PATH
         )
 
 find_package(Boost REQUIRED COMPONENTS
-        program_options
+        program_options filesystem
         )
 #find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(LOG4CPP REQUIRED)

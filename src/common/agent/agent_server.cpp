@@ -7,13 +7,15 @@
 #include <regex>
 #include <unordered_set>
 
-#include "config/cbsh_config.h"
+#include "cbsh_config.h"
 
 namespace mapf {
     AgentServer::AgentServer() {
         CBSHConfig::Ptr config;
         config.reset(new CBSHConfig());
-        map_path_ = config->GetMapPath();
+        bool train = config->GetTrain();
+        if (train) map_path_ = config->GetTrainMapPath();
+        else map_path_ = config->GetTestMapPath();
         train_rate_ = config->GetTrainRate();
         agent_num_ = config->GetAgentNum();
         rand_seed_ = config->GetRandomSeed();
@@ -25,7 +27,7 @@ namespace mapf {
         std::vector<std::string> filelist;
         filelist = GetFileList(map_path_ + "/" + map_name);
         for (const auto &file: filelist) {
-            std::fstream f(map_path_ + file, std::ios_base::in);
+            std::fstream f(file, std::ios_base::in);
             if (f.is_open()) {
                 std::vector<std::vector<int> > total;
                 std::string line;
@@ -74,7 +76,7 @@ namespace mapf {
     }
 
     void AgentServer::AgentTrain(std::vector<std::pair<int, int> > &starts, std::vector<std::pair<int, int> > &goals) const {
-        std::srand(rand_seed_);
+        //std::srand(rand_seed_);
         std::unordered_set<int> st;
         while (st.size() < agent_num_) {
             int index = std::rand() % agents_train_.size();
@@ -90,7 +92,7 @@ namespace mapf {
     }
 
     void AgentServer::AgentTest(std::vector<std::pair<int, int> > &starts, std::vector<std::pair<int, int> > &goals) const {
-        std::srand(rand_seed_);
+        //std::srand(rand_seed_);
         std::unordered_set<int> st;
         while (st.size() < agent_num_) {
             int index = std::rand() % agents_test_.size();

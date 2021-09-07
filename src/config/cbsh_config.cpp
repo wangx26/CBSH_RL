@@ -6,7 +6,7 @@
 
 namespace mapf {
     CBSHConfig::CBSHConfig() {
-        config_path_ = "/hy-tmp/CBSH_RL/data/config/cbsh_config.json";
+        config_path_ = "/home/ld/CBSH_RL/data/config/cbsh_config.json";
         LoadConfig();
     }
 
@@ -26,20 +26,29 @@ namespace mapf {
                     if(root["rectangle_reasoning"].isBool()) {
                         rectangle_reasoning_ = root["rectangle_reasoning"].asBool();
                     }
-                    if(root["map_path"].isString()) {
-                        map_path_ = root["map_path"].asString();
+                    if(root["trainmap_path"].isString()) {
+                        trainmap_path_ = root["trainmap_path"].asString();
+                    }
+                    if(root["testmap_path"].isString()) {
+                        testmap_path_ = root["testmap_path"].asString();
                     }
                     if(root["agent_path"].isString()) {
                         agent_path_ = root["agent_path"].asString();
                     }
-                    if(root["random_agent"]["agent_num"].isInt()) {
-                        agent_num_ = root["random_agent"]["agent_num"].asInt();
+                    if(root["agent_num"].isInt()) {
+                        agent_num_ = root["agent_num"].asInt();
                     }
                     if(root["random_agent"]["random_agent_path"].isString()) {
                         random_agent_path_ = root["random_agent"]["random_agent_path"].asString();
                     }
                     if(root["random_agent"]["random_seed"].isInt()) {
                         random_seed_ = root["random_agent"]["random_seed"].asInt();
+                    }
+                    if(root["train_rate"].isDouble()) {
+                        train_rate_ = root["train_rate"].asDouble();
+                    }
+                    if(root["train"].isBool()) {
+                        train_ = root["train"].asBool();
                     }
                 } else {
                     // LOG_ERROR_STREAM("CBSH config parse error.");

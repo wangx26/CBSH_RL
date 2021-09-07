@@ -11,6 +11,7 @@
 #include "Htable.h"
 #include "MDD.h"
 #include "agent/agent_server.h"
+#include "cbsh_config.h"
 
 namespace mapf {
     namespace CBSH {

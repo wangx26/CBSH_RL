@@ -8,9 +8,9 @@ class CBSEnv(gym.Env):
     def __init__(self) -> None:
         super().__init__()
         self.action_space = spaces.Discrete(2)
-        self.observation_space = spaces.Box(low=-1, high=20, shape=(3, 100), dtype=int)
+        self.observation_space = spaces.Box(low=-1, high=20, shape=(10, 1024), dtype=int)
         self.cbs = cbsrl.CBSHRL()
-        self.state = numpy.array(self.cbs.getstate()).reshape(1, 3, 10, 10).astype(numpy.float32)
+        self.state = numpy.array(self.cbs.getstate()).reshape(1, 10, 32, 32).astype(numpy.float32)
         self.reward = -self.cbs.getreward()
         print("init: ", self.reward)
         self.done = self.cbs.isdone()
@@ -21,7 +21,7 @@ class CBSEnv(gym.Env):
 
     def step(self, action):
         self.reward = -self.cbs.stepLorR(action)
-        self.state = numpy.array(self.cbs.getstate()).reshape(1, 3, 10, 10).astype(numpy.float32)
+        self.state = numpy.array(self.cbs.getstate()).reshape(1, 10, 32, 32).astype(numpy.float32)
         self.done = self.cbs.isdone()
         return self.state, self.reward, self.done, {}
 

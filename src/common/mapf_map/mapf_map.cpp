@@ -7,7 +7,7 @@
 
 #include "mapf_map.h"
 //#include "../../log/log.h"
-#include "config/cbsh_config.h"
+#include "cbsh_config.h"
 
 namespace mapf {
     Map::Map() {
@@ -35,7 +35,7 @@ namespace mapf {
 
     std::string Map::LoadFileMap(const std::string file_path) {
         auto filelist = GetFileList(file_path);
-        std::srand(rand_seed_);
+        //std::srand(rand_seed_);
         int index = std::rand() % filelist.size();
         std::string line;
         std::fstream f(file_path + "/" + filelist[index] + "/" + filelist[index] + ".map", std::ios_base::in);
@@ -78,7 +78,7 @@ namespace mapf {
                 boost::filesystem::directory_iterator end_iter;
                 for (boost::filesystem::directory_iterator it(dir); it != end_iter; ++it) {
                     if (boost::filesystem::is_directory(it->path())) {
-                        filelist.push_back(it->path().string());
+                        filelist.push_back(it->path().stem().string());
                     }
                 }
             } else {
@@ -163,7 +163,7 @@ namespace mapf {
         }
         //std::random_device rd;
         //std::mt19937 g(rd());
-        std::srand(rand_seed);
+        //std::srand(rand_seed);
         std::random_shuffle(all_loc.begin(), all_loc.end());
         std::vector<int> result(all_loc.begin(), all_loc.begin() + agent_num);
         return result;
@@ -178,7 +178,7 @@ namespace mapf {
         }
         //std::random_device rd;
         //std::mt19937 g(rd());
-        std::srand(rand_seed);
+        //std::srand(rand_seed);
         std::random_shuffle(all_loc.begin(), all_loc.end());
         std::vector<int> result(all_loc.begin(), all_loc.begin() + agent_num);
         return result;
