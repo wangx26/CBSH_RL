@@ -4,6 +4,9 @@
 #include <memory>
 #include <vector>
 
+#include "mapf_map/mapf_map.h"
+#include "agent/agent.h"
+
 namespace mapf {
     class RLtest {
     public:
@@ -15,8 +18,9 @@ namespace mapf {
 
     private:
         //地图
-        std::vector<int> map_;
+        Map::Ptr map_;
         //任务
+        std::vector<Agent::Ptr> agents_;
     };
 }
 

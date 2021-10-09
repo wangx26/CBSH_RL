@@ -13,6 +13,7 @@ namespace mapf {
         bool rectangle_reasoning_;
         std::string trainmap_path_;
         std::string testmap_path_;
+        std::string testmap_name_;
         std::string agent_path_;
 
         int agent_num_;
@@ -61,6 +62,9 @@ namespace mapf {
         }
         bool GetTrain() const {
             return train_;
+        }
+        std::string GetTestMapName() {
+            return testmap_name_;
         }
     };
 }

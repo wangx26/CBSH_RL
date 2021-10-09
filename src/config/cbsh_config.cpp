@@ -32,6 +32,9 @@ namespace mapf {
                     if(root["testmap_path"].isString()) {
                         testmap_path_ = root["testmap_path"].asString();
                     }
+                    if(root["testmap_name"].isString()) {
+                        testmap_name_ = root["testmap_name"].asString();
+                    }
                     if(root["agent_path"].isString()) {
                         agent_path_ = root["agent_path"].asString();
                     }
