@@ -8,7 +8,7 @@ num_processes       = 1
 save_interval       = 10 #500
 max_actions         = 50
 
-log_path            = "tensorboard/CBSRL"
+log_path            = "../../tb_logs"
 save_path           = "trained_models"
 
 use_gpu             = False

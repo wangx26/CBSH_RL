@@ -9,7 +9,7 @@ class ActorCritic(nn.Module):
         self.conv2 = nn.Conv2d(32, 32, 3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(32, 32, 3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(32, 32, 3, stride=1, padding=1)
-        self.lstm = nn.LSTMCell(32 * 10 * 10, 512)
+        self.lstm = nn.LSTMCell(32 * 32 * 32, 512)
         self.critic_linear = nn.Linear(512, 1)
         self.actor_linear = nn.Linear(512, num_actions)
         self._initialize_weights()

@@ -34,6 +34,7 @@ namespace mapf {
     }
 
     std::string Map::LoadFileMap(const std::string file_path) {
+        map_.clear();
         auto filelist = GetFileList(file_path);
         //std::srand(rand_seed_);
         int index = std::rand() % filelist.size();

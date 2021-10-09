@@ -16,7 +16,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/cbsrl.dir/src/visualization/show.cpp.o"
   "CMakeFiles/cbsrl.dir/src/log/log.cpp.o"
   "cbsrl.pdb"
-  "cbsrl.cpython-35m-x86_64-linux-gnu.so"
+  "cbsrl.cpython-37m-x86_64-linux-gnu.so"
 )
 
 # Per-language clean rules from dependency scanning.

@@ -19,7 +19,8 @@ def local_train(index, global_model, optimizer, save=False):
     if use_gpu:
         local_model.cuda()
     local_model.train()
-    while (env.done()):
+    state = torch.from_numpy(env.reset(True))
+    while env.isdone():
         state = torch.from_numpy(env.reset(True))
     if use_gpu:
         state = state.cuda()
@@ -56,7 +57,7 @@ def local_train(index, global_model, optimizer, save=False):
 
                 m = Categorical(policy)
                 action = m.sample().item()
-                # print("Process {}. Episode {}, action {}".format(index, curr_episode, action))
+                print("Process {}. Episode {}, action {}".format(index, curr_episode, action))
 
                 state, reward, done, _ = env.step(action)
                 #valid_action = env.getvalidaction()
@@ -69,6 +70,8 @@ def local_train(index, global_model, optimizer, save=False):
                 if done:
                     curr_step = 0
                     state = torch.from_numpy(env.reset(True))
+                    while env.isdone():
+                        state = torch.from_numpy(env.reset(True))
                     if use_gpu:
                         state = state.cuda()
 
@@ -133,7 +136,8 @@ def local_test(index, global_model):
     env, num_states, num_actions = create_train_env()
     local_model = ActorCritic(num_states, num_actions)
     local_model.eval()
-    while (env.done()):
+    state = torch.from_numpy(env.reset(True))
+    while env.isdone():
         state = torch.from_numpy(env.reset(True))
     done = True
     curr_step = 0
@@ -162,5 +166,8 @@ def local_test(index, global_model):
             print("Test done, reward: ", reward)
             curr_step = 0
             actions.clear()
-            state = env.reset(True)
-        state = torch.from_numpy(state)
+            state = torch.from_numpy(env.reset(True))
+            while env.isdone():
+                state = torch.from_numpy(env.reset(True))
+        else:
+            state = torch.from_numpy(state)
