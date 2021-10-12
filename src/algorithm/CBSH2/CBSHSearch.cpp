@@ -167,6 +167,14 @@ namespace mapf{
             return curr_node_->GetGCost() + reward_;
         }
 
+        int CBSHSearch::GetGCost() const {
+            return curr_node_->GetGCost();
+        }
+
+        int CBSHSearch::GetMakeSpan() const {
+            return curr_node_->GetMakespan();
+        }
+
         float CBSHSearch::Step(int a, int t) {
             // a, t不合适，状态不变，返回惩罚reward
             if (a >= agent_ids_.size()) return map_->GetMapSize();

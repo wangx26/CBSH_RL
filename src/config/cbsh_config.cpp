@@ -53,6 +53,9 @@ namespace mapf {
                     if(root["train"].isBool()) {
                         train_ = root["train"].asBool();
                     }
+                    if(root["test_data_path"].isString()) {
+                        test_data_path_ = root["test_data_path"].asString();
+                    }
                 } else {
                     // LOG_ERROR_STREAM("CBSH config parse error.");
                 }

@@ -64,6 +64,8 @@ namespace mapf {
             // 将节点路径转化为输出路径
             void RecordPlan(const CBSHNode::Ptr &node);
             std::vector<Agent::Ptr> GetPlan();
+            int GetGCost() const;
+            int GetMakeSpan() const;
 
             bool BuildChild(CBSHNode::Ptr &node, std::string cons_agent,
                             const std::map<std::pair<std::string, std::string>, int> &conflict_graph);

@@ -4,6 +4,8 @@
     "rectangle_reasoning":false,
 	"trainmap_path":"/home/wolf/CBSH_RL/data/train_maps",
 	"testmap_path":"/home/wolf/CBSH_RL/data/test_maps",
+    "testmap_name":"",
+    "test_data_path":"",
     "agent_path":"/home/wolf/CBSH_RL/data/test.csv",
     "train_rate":0.8,
     "train":true,

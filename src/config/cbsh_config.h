@@ -15,6 +15,7 @@ namespace mapf {
         std::string testmap_path_;
         std::string testmap_name_;
         std::string agent_path_;
+        std::string test_data_path_;
 
         int agent_num_;
         std::string random_agent_path_;
@@ -63,8 +64,11 @@ namespace mapf {
         bool GetTrain() const {
             return train_;
         }
-        std::string GetTestMapName() {
+        std::string GetTestMapName() const {
             return testmap_name_;
+        }
+        std::string GetTestDataPath() const {
+            return test_data_path_;
         }
     };
 }
