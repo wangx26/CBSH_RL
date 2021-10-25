@@ -7,6 +7,7 @@
 #include "mapf_map/mapf_map.h"
 #include "agent/agent.h"
 #include "config/cbsh_config.h"
+#include "agent/agent_server.h"
 
 namespace mapf {
     class RLtest {
@@ -15,6 +16,7 @@ namespace mapf {
         RLtest();
         ~RLtest()=default;
         void TestCbs() const;
+        void TestRand() const;
         void TestRL() const;
         void WriteData(double t, int g_cost, int make_span) const;
 
@@ -24,6 +26,10 @@ namespace mapf {
         //任务
         std::vector<Agent::Ptr> agents_;
         CBSHConfig::Ptr conf_;
+        AgentServer::Ptr agent_server_;
+
+        void LoadMap();
+        void LoadAgent();
     };
 }
 

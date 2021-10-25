@@ -8,6 +8,31 @@
 namespace mapf {
     RLtest::RLtest() {
         conf_.reset(new CBSHConfig());
+        LoadMap();
+        LoadAgent();
+    }
+
+    void RLtest::LoadMap() {
+        std::string test_map_path = conf_->GetTestMapPath();
+        std::string test_map_name = conf_->GetTestMapName();
+        map_.reset(new Map());
+        map_->LoadFileMap(test_map_path + test_map_name);
+    }
+
+    void RLtest::LoadAgent() {
+        agent_server_.reset(new AgentServer());
+        std::string test_map_name = conf_->GetTestMapName();
+        agent_server_->LoadAgentScenarios(test_map_name);
+        std::vector<std::pair<int, int> > starts, goals;
+        agent_server_->AgentTest(starts, goals);
+        Agent::Ptr agent;
+        agents_.clear();
+        for (int i = 0; i < goals.size(); ++i) {
+            agent.reset(new Agent(std::to_string(i)));
+            agent->SetStart(map_->ToLoc(starts[i].first, starts[i].second));
+            agent->SetGoal(map_->ToLoc(goals[i].first, goals[i].second));
+            agents_.push_back(agent);
+        }
     }
 
     void RLtest::TestCbs() const {
@@ -25,6 +50,10 @@ namespace mapf {
         auto l = cbsh->GetGCost();
         auto makespan = cbsh->GetMakeSpan();
         WriteData(t, l, makespan);
+    }
+
+    void RLtest::TestRand() const {
+        //
     }
 
     void RLtest::TestRL() const {
