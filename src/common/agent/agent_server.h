@@ -20,7 +20,7 @@ namespace mapf {
         int agent_num_;
         float train_rate_;
         std::string map_path_;
-        int rand_seed_;
+        int randseed_agent_;
         std::vector<std::vector<int> > agents_train_;
         std::vector<std::vector<int> > agents_test_;
         std::vector<std::string> GetFileList(std::string path) const;

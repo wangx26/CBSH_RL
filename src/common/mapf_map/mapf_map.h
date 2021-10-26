@@ -27,7 +27,7 @@ namespace mapf {
         void LoadPictureMap(const std::string file_path);
 
         // 随机选择一个文件
-        std::string LoadFileMap(const std::string file_path);
+        std::string LoadFileMap(const std::string file_path, std::string file_name="");
 
         void LoadAgentFile(const std::string file_path, std::vector<int> &starts,
         std::vector<int> &goals, int &agent_num);
@@ -62,7 +62,7 @@ namespace mapf {
         std::vector<int> GetMap() const;
 private:
         std::vector<std::string> GetFileList(std::string path) const;
-        float rand_seed_;
+        int randseed_map_;
     };
 }
 

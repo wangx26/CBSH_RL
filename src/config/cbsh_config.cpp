@@ -6,7 +6,7 @@
 
 namespace mapf {
     CBSHConfig::CBSHConfig() {
-        config_path_ = "/home/wolf/CBSH_RL/data/config/cbsh_config.json";
+        config_path_ = "/home/ld/CBSH_RL/data/config/cbsh_config.json";
         LoadConfig();
     }
 
@@ -45,7 +45,10 @@ namespace mapf {
                         random_agent_path_ = root["random_agent"]["random_agent_path"].asString();
                     }
                     if(root["random_agent"]["random_seed"].isInt()) {
-                        random_seed_ = root["random_agent"]["random_seed"].asInt();
+                        randseed_agent_ = root["random_agent"]["random_seed"].asInt();
+                    }
+                    if (root["randseedmap"].isInt()) {
+                        randseed_map_ = root["randseedmap"].asInt();
                     }
                     if(root["train_rate"].isDouble()) {
                         train_rate_ = root["train_rate"].asDouble();

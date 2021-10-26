@@ -107,6 +107,7 @@ namespace mapf {
             void LoadAgent(std::vector<int> &starts, std::vector<int> &goals, std::string map_name);
             AgentServer::Ptr agent_server_;
             CBSHConfig::Ptr config_;
+            int GetHLexpendNum() const;
         };
     }
 }

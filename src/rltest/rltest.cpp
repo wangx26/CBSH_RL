@@ -9,6 +9,11 @@ namespace mapf {
     RLtest::RLtest() {
         conf_.reset(new CBSHConfig());
         LoadMap();
+        float obs = 0;
+        for (auto m: map_->GetMap()) {
+            if (m == -1) ++obs;
+        }
+        map_obs_ = obs / float(map_->GetMapSize());
         LoadAgent();
     }
 
@@ -16,7 +21,7 @@ namespace mapf {
         std::string test_map_path = conf_->GetTestMapPath();
         std::string test_map_name = conf_->GetTestMapName();
         map_.reset(new Map());
-        map_->LoadFileMap(test_map_path + test_map_name);
+        map_->LoadFileMap(test_map_path, test_map_name);
     }
 
     void RLtest::LoadAgent() {
@@ -48,8 +53,9 @@ namespace mapf {
         auto t = double(chrono_t.count()) * std::chrono::microseconds::period::num /
                  std::chrono::microseconds::period::den;
         auto l = cbsh->GetGCost();
+        auto hl = cbsh->GetHLexpendNum();
         auto makespan = cbsh->GetMakeSpan();
-        WriteData(t, l, makespan);
+        WriteData(t, l, makespan, hl);
     }
 
     void RLtest::TestRand() const {
@@ -60,7 +66,7 @@ namespace mapf {
         //
     }
 
-    void RLtest::WriteData(double t, int g_cost, int make_span) const {
+    void RLtest::WriteData(double t, int g_cost, int make_span, int hl) const {
         auto data_path = conf_->GetTestDataPath();
         auto agent_num = conf_->GetAgentNum();
         auto strategy = conf_->GetStrategy();
@@ -75,7 +81,8 @@ namespace mapf {
         }
         std::ofstream f;
         f.open(data_path, std::ios::app);
-        if (f.is_open()) f << strategy << "," << agent_num << "," << t << "," << g_cost << "," << make_span << ",\n";
+        if (f.is_open()) f << strategy << "," << agent_num << "," << t << "," << g_cost << ","
+                            << make_span << "," << map_obs_ << "," << hl << ",\n";
         f.close();
     }
 }

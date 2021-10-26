@@ -2,16 +2,17 @@
     "strategy":"NONE",
     "focal":1.0,
     "rectangle_reasoning":false,
-	"trainmap_path":"/home/wolf/CBSH_RL/data/train_maps",
-	"testmap_path":"/home/wolf/CBSH_RL/data/test_maps",
-    "testmap_name":"",
-    "test_data_path":"",
-    "agent_path":"/home/wolf/CBSH_RL/data/test.csv",
+	"trainmap_path":"/home/ld/CBSH_RL/data/train_maps",
+	"testmap_path":"/home/ld/CBSH_RL/data/test_maps",
+    "testmap_name":"warehouse-10-20-10-2-1",
+    "test_data_path":"/home/ld/CBSH_RL/data/testresult.csv",
+    "agent_path":"/home/ld/CBSH_RL/data/test.csv",
     "train_rate":0.8,
-    "train":true,
-    "agent_num":10,
+    "train":false,
+    "agent_num":48,
+    "randseedmap":0,
     "random_agent":{
-        "random_agent_path":"/home/wolf/CBSH_RL/data/agents.csv",
+        "random_agent_path":"/home/ld/CBSH_RL/data/agents.csv",
 	    "random_seed":10
     }
 }

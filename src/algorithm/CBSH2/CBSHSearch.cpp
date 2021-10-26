@@ -19,8 +19,8 @@ namespace mapf{
             focal_w_ = config_->GetFocal();
             rectangle_reasoning_ = config_->GetRectangle();
             train_ = config_->GetTrain();
-            rand_seed_ = config_->GetRandomSeed();
-            std::srand(rand_seed_);
+            //rand_seed_ = config_->GetRandomSeed();
+            //std::srand(rand_seed_);
             // load map
             map_.reset(new Map());
             std::string map_name = LoadMap();
@@ -305,6 +305,7 @@ namespace mapf{
                     //LOG_DEBUG_STREAM("High level root, time: " << compute_astarh_time_);
                     //LOG_DEBUG_STREAM("G cost: " << current_node->GetGCost());
                     //LOG_DEBUG_STREAM("Makespan: " << current_node->GetMakespan());
+                    curr_node_ = current_node;
                     return true;
                 }
                 else if(strategy_ == "NONE") {
@@ -385,6 +386,10 @@ namespace mapf{
                 UpdateFocalList();
             } // end of while loop
             return false;
+        }
+
+        int CBSHSearch::GetHLexpendNum() const {
+            return HL_expend_num_;
         }
 
         std::vector<Agent::Ptr> CBSHSearch::GetPlan() {

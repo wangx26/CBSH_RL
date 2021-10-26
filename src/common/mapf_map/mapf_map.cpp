@@ -13,7 +13,7 @@ namespace mapf {
     Map::Map() {
         CBSHConfig::Ptr config;
         config.reset(new CBSHConfig());
-        rand_seed_ = config->GetRandomSeed();
+        randseed_map_ = config->GetRandSeedMap();
     }
 
     void Map::SetOffset() {
@@ -33,42 +33,51 @@ namespace mapf {
         return map_;
     }
 
-    std::string Map::LoadFileMap(const std::string file_path) {
+    std::string Map::LoadFileMap(const std::string file_path, std::string file_name) {
         map_.clear();
-        auto filelist = GetFileList(file_path);
-        //std::srand(rand_seed_);
-        int index = std::rand() % filelist.size();
+        std::string f_path;
+        std::string f_name;
+        if (randseed_map_) {
+            std::srand(randseed_map_);
+            auto filelist = GetFileList(file_path);
+            int index = std::rand() % filelist.size();
+            f_name = filelist[index];
+        } else {
+            f_name = file_name;
+        }
+        f_path = file_path + "/" + f_name + "/" + f_name + ".map";
         std::string line;
-        std::fstream f(file_path + "/" + filelist[index] + "/" + filelist[index] + ".map", std::ios_base::in);
-        if(f.is_open()){
+        std::fstream f(f_path, std::ios_base::in);
+        if (f.is_open()) {
             std::getline(f, line);
             std::getline(f, line);
             std::string num;
             std::istringstream readstr(line);
             readstr >> num >> num;
-            width_ = std::atoi(num.c_str());
-            readstr.str(line);
-            readstr >> num >> num;
             height_ = std::atoi(num.c_str());
             std::getline(f, line);
-            for(int i = 0; i < height_; ++i) {
+            readstr.clear();
+            readstr.str(line);
+            readstr >> num >> num;
+            width_ = std::atoi(num.c_str());
+            std::getline(f, line);
+            for (int i = 0; i < height_; ++i) {
                 std::getline(f, line);
-                for(int j = 0; j < width_; ++j){
-                    if(line[j] == '1' || line[j] == '@' || line[j] == 'T'){
+                for (int j = 0; j < width_; ++j) {
+                    if (line[j] == '1' || line[j] == '@' || line[j] == 'T') {
                         map_.push_back(-1);
-                    }
-                    else{
+                    } else {
                         map_.push_back(0);
                     }
                 }
             }
-        }
-        else {
+        } else {
             std::cout << "Open map fail :" << file_path.c_str() << std::endl;
         }
         std::cout << "Read Map" << std::endl;
         f.close();
-        return filelist[index];
+        SetOffset();
+        return f_name;
     }
 
     std::vector<std::string> Map::GetFileList(std::string path) const {
@@ -83,7 +92,7 @@ namespace mapf {
                     }
                 }
             } else {
-                std::cout << "Agent Path not exist: " << path << std::endl;
+                std::cout << "Map Path not exist: " << path << std::endl;
             }
         }
         catch (...) {

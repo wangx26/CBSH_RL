@@ -18,7 +18,7 @@ namespace mapf {
         else map_path_ = config->GetTestMapPath();
         train_rate_ = config->GetTrainRate();
         agent_num_ = config->GetAgentNum();
-        rand_seed_ = config->GetRandomSeed();
+        randseed_agent_ = config->GetRandSeedAgent();
     }
 
     void AgentServer::LoadAgentScenarios(const std::string &map_name) {
@@ -76,7 +76,7 @@ namespace mapf {
     }
 
     void AgentServer::AgentTrain(std::vector<std::pair<int, int> > &starts, std::vector<std::pair<int, int> > &goals) const {
-        //std::srand(rand_seed_);
+        //std::srand(randseed_agent_);
         std::unordered_set<int> st;
         while (st.size() < agent_num_) {
             int index = std::rand() % agents_train_.size();
@@ -92,7 +92,7 @@ namespace mapf {
     }
 
     void AgentServer::AgentTest(std::vector<std::pair<int, int> > &starts, std::vector<std::pair<int, int> > &goals) const {
-        if (rand_seed_) std::srand(rand_seed_);
+        if (randseed_agent_) std::srand(randseed_agent_);
         std::unordered_set<int> st;
         while (st.size() < agent_num_) {
             int index = std::rand() % agents_test_.size();

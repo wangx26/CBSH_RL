@@ -6,7 +6,7 @@
 
 #include "mapf_map/mapf_map.h"
 #include "agent/agent.h"
-#include "config/cbsh_config.h"
+#include "cbsh_config.h"
 #include "agent/agent_server.h"
 
 namespace mapf {
@@ -18,11 +18,12 @@ namespace mapf {
         void TestCbs() const;
         void TestRand() const;
         void TestRL() const;
-        void WriteData(double t, int g_cost, int make_span) const;
+        void WriteData(double t, int g_cost, int make_span, int hl) const;
 
     private:
         //地图
         Map::Ptr map_;
+        float map_obs_;
         //任务
         std::vector<Agent::Ptr> agents_;
         CBSHConfig::Ptr conf_;

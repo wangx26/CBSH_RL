@@ -19,7 +19,8 @@ namespace mapf {
 
         int agent_num_;
         std::string random_agent_path_;
-        int random_seed_;
+        int randseed_agent_;
+        int randseed_map_;
 
         float train_rate_;
         bool train_;
@@ -55,8 +56,11 @@ namespace mapf {
         std::string GetRandomAgentPath() const {
             return random_agent_path_;
         }
-        int GetRandomSeed() const {
-            return random_seed_;
+        int GetRandSeedAgent() const {
+            return randseed_agent_;
+        }
+        int GetRandSeedMap() const {
+            return randseed_map_;
         }
         float GetTrainRate() const {
             return train_rate_;
