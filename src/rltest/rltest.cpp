@@ -46,16 +46,20 @@ namespace mapf {
 
         auto s_time = std::chrono::system_clock::now();
         auto success = cbsh->MakePlan();
-        auto path = cbsh->GetPlan();
-        auto end_time = std::chrono::system_clock::now();
+        if (success){
+            auto path = cbsh->GetPlan();
+            auto end_time = std::chrono::system_clock::now();
 
-        auto chrono_t = std::chrono::duration_cast<std::chrono::microseconds>(end_time - s_time);
-        auto t = double(chrono_t.count()) * std::chrono::microseconds::period::num /
-                 std::chrono::microseconds::period::den;
-        auto l = cbsh->GetGCost();
-        auto hl = cbsh->GetHLexpendNum();
-        auto makespan = cbsh->GetMakeSpan();
-        WriteData(t, l, makespan, hl);
+            auto chrono_t = std::chrono::duration_cast<std::chrono::microseconds>(end_time - s_time);
+            auto t = double(chrono_t.count()) * std::chrono::microseconds::period::num /
+                    std::chrono::microseconds::period::den;
+            auto l = cbsh->GetGCost();
+            auto hl = cbsh->GetHLexpendNum();
+            auto makespan = cbsh->GetMakeSpan();
+            WriteData(t, l, makespan, hl);
+        } else {
+            WriteData(0, 0, 0, 0);
+        }
     }
 
     void RLtest::TestRand() const {
