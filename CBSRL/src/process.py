@@ -19,9 +19,9 @@ def local_train(index, global_model, optimizer, save=False):
     if use_gpu:
         local_model.cuda()
     local_model.train()
-    state = torch.from_numpy(env.reset(True))
+    state = torch.from_numpy(env.reset(False))
     while env.isdone():
-        state = torch.from_numpy(env.reset(True))
+        state = torch.from_numpy(env.reset(False))
     if use_gpu:
         state = state.cuda()
     done = True
@@ -69,9 +69,9 @@ def local_train(index, global_model, optimizer, save=False):
 
                 if done:
                     curr_step = 0
-                    state = torch.from_numpy(env.reset(True))
+                    state = torch.from_numpy(env.reset(False))
                     while env.isdone():
-                        state = torch.from_numpy(env.reset(True))
+                        state = torch.from_numpy(env.reset(False))
                     if use_gpu:
                         state = state.cuda()
 
@@ -112,7 +112,9 @@ def local_train(index, global_model, optimizer, save=False):
             #    + torch.log(torch.clamp(log_policies, 1e-10, 1.0) * (1 - valid_list)))
 
             total_loss = -actor_loss + critic_loss - beta * entropy_loss #+ valid_loss
-            writer.add_scalar("Train_{}/loss".format(index), total_loss, curr_episode)
+            ## writer.add_scalar("Train_{}/loss".format(index), total_loss, curr_episode)
+            reward = rewards[-1]
+            writer.add_scalar("Train_{}/reward".format(index), reward, curr_episode)
             optimizer.zero_grad()
             total_loss.backward()
 
@@ -136,9 +138,9 @@ def local_test(index, global_model):
     env, num_states, num_actions = create_train_env()
     local_model = ActorCritic(num_states, num_actions)
     local_model.eval()
-    state = torch.from_numpy(env.reset(True))
+    state = torch.from_numpy(env.reset(False))
     while env.isdone():
-        state = torch.from_numpy(env.reset(True))
+        state = torch.from_numpy(env.reset(False))
     done = True
     curr_step = 0
     actions = deque(maxlen=max_actions)
@@ -166,8 +168,8 @@ def local_test(index, global_model):
             print("Test done, reward: ", reward)
             curr_step = 0
             actions.clear()
-            state = torch.from_numpy(env.reset(True))
+            state = torch.from_numpy(env.reset(False))
             while env.isdone():
-                state = torch.from_numpy(env.reset(True))
+                state = torch.from_numpy(env.reset(False))
         else:
             state = torch.from_numpy(state)
